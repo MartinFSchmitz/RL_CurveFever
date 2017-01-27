@@ -4,7 +4,7 @@
 #os.environ['THEANO_FLAGS'] = "device=gpu,floatX=float32"  
 #---
 
-import random, numpy, math, gym, scipy
+import random, numpy, math
 from SumTree import SumTree
 import pygame
 import game.GameMode
