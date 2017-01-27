@@ -1,0 +1,3 @@
+----Install Instructions-----
+install numpy, keras, pygame,
+--> using conda (pip may cause problems)

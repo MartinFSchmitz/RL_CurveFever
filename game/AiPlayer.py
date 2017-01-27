@@ -18,17 +18,17 @@ class AiPlayer(Player):
          
     def doAction(self, action, map, diffmap): # Fahre gerade aus, bis Abstand zu Wand < epsilon / In jedem Zeitschritt
         action = 0
-        epsilon = 20 # epsilon >= 3
-        dist_to_wall = self.distance(self.rotation, map)    
+        #epsilon = 20 # epsilon >= 3
+        #dist_to_wall = self.distance(self.rotation, map)    
         #print(dist_to_wall)    
-        if dist_to_wall <= epsilon : action = self.avoidWall(map)    
-        self.rotate = action
+        # if dist_to_wall <= epsilon : action = self.avoidWall(map)
+            
+        self.rotate = self.avoidWall(map)
                       
     def distance(self, degree, curr_map): # return the distance to the next wall in given angle
         a = self.lookUp(degree)
         x_adder = a[0] # use the angle to define a path to look at
         y_adder = a[1]
-        print (a)
 
         curr_field = (int(self.x),int(self.y))
         last_field = curr_field
@@ -62,13 +62,21 @@ class AiPlayer(Player):
     
     def avoidWall(self, map):  #biege in bessere Richtung ab. ( besser ermittelbar durch: argmax oder durchschnitt der Abstaende) 
     
-        angle = 45
-        l = self.distance(self.rotation - angle , map)
-        r = self.distance(self.rotation + angle , map)
+        deg_range = 10 # the degree difference between 2 distance calls
         
-        if( l > r): action = -1 # 1 := turn right, -1 := turn left
-        else: action = 1
-             
+        max_f = self.distance(self.rotation , map)
+        max_l = 0
+        max_r = 0
+        for angle in range(1, 179/ deg_range):
+            dist_l = self.distance(self.rotation - (angle*deg_range) , map)              
+            dist_r = self.distance(self.rotation + (angle*deg_range) , map)
+            if(dist_l > max_l): max_l = dist_l
+            if(dist_r > max_r): max_r = dist_r
+        
+        if(max_f >= max_l and max_f >= max_r): action = 0 # 0:=forward, 1:=turn right, -1:=turn left
+        elif(max_l > max_r): action = -1
+        else: action = 1     
+
         return action
    
 
