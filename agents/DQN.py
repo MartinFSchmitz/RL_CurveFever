@@ -7,7 +7,7 @@
 import random, numpy, math
 from SumTree import SumTree
 import pygame
-import game.GameMode
+from game.GameMode import Learn_SinglePlayer
 from keras.models import load_model
 from keras.utils.np_utils import binary_logloss
 from keras import optimizers
@@ -254,7 +254,7 @@ class Environment:
 env = Environment()
 
 # init Game Environment
-game = game.GameMode.Learn_SinglePlayer()   
+game = Learn_SinglePlayer()   
 game.firstInit()
 game.init(game, False)
 

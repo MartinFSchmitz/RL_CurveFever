@@ -73,8 +73,8 @@ class AiPlayer(Player):
             if(dist_l > max_l): max_l = dist_l
             if(dist_r > max_r): max_r = dist_r
         
-        if(max_f >= max_l and max_f >= max_r): action = 0 # 0:=forward, 1:=turn right, -1:=turn left
-        elif(max_l > max_r): action = -1
+        #if(max_f >= max_l and max_f >= max_r): action = 0 # 0:=forward, 1:=turn right, -1:=turn left
+        if(max_l > max_r): action = -1
         else: action = 1     
 
         return action
