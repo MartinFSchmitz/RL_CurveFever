@@ -13,7 +13,6 @@ from keras.optimizers import *
 
 from keras.models import load_model
 from keras.models import model_from_json
-from path import path
 import sys
 
 
@@ -34,7 +33,6 @@ class DQN_Player(Player):
 
         # returns a compiled model
         # identical to the previous one
-        #print(sys.path)
         opt = RMSprop(lr=0.00025) #RMSprob is a popular adaptive learning rate method 
         #self.dqn=load_model('save_1.h5', custom_objects={'hubert_loss': hubert_loss,'opt': opt })
         self.stateCnt = (2, self.mapSize[0]+2, self.mapSize[1]+2)
