@@ -226,8 +226,8 @@ class Environment:
         map ,diffMap , r, done = game.AiStep() # 1st frame no action
         s = numpy.array([map, diffMap])       
         R=0
-        k = 4
-        
+        k = 4 # step hopper
+        counter = 0
         while True:         
             
             if (count % k == 0):
@@ -247,14 +247,14 @@ class Environment:
             else: 
                 map ,diffMap, r, done = game.AiStep()     
             
-            count+=1
+            counter+=1
             R+=r
             if done:
                 
                 break
 
         print("Total reward:", R)
-        return count
+        return count + (counter/k)
 #-------------------- MAIN ----------------------------
 
 env = Environment()
