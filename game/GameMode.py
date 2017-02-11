@@ -29,9 +29,9 @@ class SinglePlayer (Main):
     def createPlayers(self):
         color_one = (255,100,0)
         #Player = HumanPlayer.HumanPlayer(self.mapSize,color_one,self.screenScale,"control_1")
-        Player = AiPlayer.AiPlayer(self.mapSize,color_one,self.screenScale)
-        #Player = AI_Loader.DQN_Player(self.mapSize,color_one,self.screenScale)
-        #Player.load_DQN()
+        #Player = AiPlayer.AiPlayer(self.mapSize,color_one,self.screenScale)
+        Player = AI_Loader.DQN_Player(self.mapSize,color_one,self.screenScale)
+        Player.load_DQN()
         self.players.append(Player)
     
     def stepScore(self):

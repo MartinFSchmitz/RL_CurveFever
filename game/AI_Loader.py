@@ -43,7 +43,7 @@ class DQN_Player(Player):
         json_file.close()
         self.dqn = model_from_json(loaded_model_json)
         # load weights into new model
-        self.dqn.load_weights("model.h5")
+        self.dqn.load_weights("dqn/model_0.h5")
         self.dqn.compile(loss=hubert_loss, optimizer=opt)
 
         print("Loaded model from disk")                                                 

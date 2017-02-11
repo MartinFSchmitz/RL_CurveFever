@@ -39,9 +39,10 @@ class Brain:
 
         # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
         #relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
-        model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(self.stateCnt)))     
-        model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
-        model.add(Convolution2D(64, 3, 3, activation='relu'))
+        model.add(Convolution2D(64, 8, 8, subsample=(4,4), activation='relu', input_shape=(self.stateCnt)))
+        #model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(self.stateCnt)))     
+        #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
+        #model.add(Convolution2D(64, 3, 3, activation='relu'))
         model.add(Flatten())
         model.add(Dense(output_dim=512, activation='relu'))
 
@@ -66,8 +67,8 @@ class Brain:
 
     def predictOne(self, s, target=False):
         print (self.stateCnt)
-        return self.predict(s.reshape(1, (2, 80+2, 80+2)), target).flatten() #8 0 = mapsize
-
+        #return self.predict(s.reshape(1, (2, 80+2, 80+2)), target).flatten() #8 0 = mapsize
+        return self.predict(s.reshape(1, 2, 80+2, 80+2), target).flatten() #8 0 = mapsize   try like this...
     def updateTargetModel(self):
         self.model_.set_weights(self.model.get_weights())
 
@@ -111,7 +112,7 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
         self.tree.update(idx, p)
         
         #-------------------- AGENT ---------------------------
-MEMORY_CAPACITY = 200000 # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 1000 # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -225,34 +226,25 @@ class Environment:
 
         map ,diffMap , r, done = game.AiStep() # 1st frame no action
         s = numpy.array([map, diffMap])       
-        R=0
+        R = 0
         k = 4 # step hopper
         counter = 0
         while True:         
             
-            if (count % k == 0):
-                a = agent.act(s) # agent decides an action
-                
+            if (counter % k == 0):
+                a = agent.act(s) # agent decides an action        
                 game.players[0].action = a-1 # converts interval (0,2) to (-1,1)
                 map ,diffMap, r, done = game.AiStep()
                 s_ = numpy.array([map, diffMap])#last two screens
-    
-                if done: # terminal state
-                    s_ = None
-    
                 agent.observe( (s, a, r, s_) ) # agent adds the new sample
-                agent.replay() #
-    
+                agent.replay()                
                 s = s_
             else: 
                 map ,diffMap, r, done = game.AiStep()     
-            
             counter+=1
             R+=r
-            if done:
-                
+            if done:    #terminal state  
                 break
-
         print("Total reward:", R)
         return count + (counter/k)
 #-------------------- MAIN ----------------------------
@@ -266,7 +258,6 @@ game.init(game, False)
 
 stateCnt  = (2, game.mapSize[0]+2, game.mapSize[1]+2) # 2=Map + diffMap, height, width
 actionCnt = 3 # left, right, straight
-
 agent = Agent(stateCnt, actionCnt)
 randomAgent = RandomAgent(actionCnt)
 
@@ -284,30 +275,25 @@ try:
     count = 0
     save_counter = 0
     while True:
-        if count >= 20000000: break
+        if count >= 10000000: break
         count = env.run(agent, game, count)
                     # serialize model to JSON
         #model_json = agent.brain.model.to_json()
         #with open("model.json", "w") as json_file:
-        #    json_file.write(model_json)
+            #json_file.write(model_json)
         # serialize weights to HDF5
-        #ave_counter += 1
-        if save_counter % 100000 == 0: # all x games, save the CNN
+
+        if save_counter % 50000 == 0: # all x games, save the CNN
+            save_counter += 1
             agent.brain.model.save_weights("dqn/model_" + str(save_counter) + ".h5")
             print("Saved model to disk")
 
 finally:
             # serialize model to JSON
-        #model_json = agent.brain.model.to_json()
-        #with open("model.json", "w") as json_file:
-        #    json_file.write(model_json)
-        # serialize weights to HDF5
+        model_json = agent.brain.model.to_json()
+        with open("model.json", "w") as json_file:
+            json_file.write(model_json)
+        #serialize weights to HDF5
         agent.brain.model.save_weights("dqn/model_end.h5")
         print("Saved FINAL model to disk.")
         print("-----------Finished Process----------")
-    #agent.brain.model.save('KNNs/save_1.h5')
-
-
-
-
-    
