@@ -57,6 +57,7 @@ class Brain:
         # x=input, y=target, batch_size = Number of samples per gradient update
         #nb_epoch = number of the epoch, 
         # verbose: 0 for no logging to stdout, 1 for progress bar logging, 2 for one log line per epoch.
+        print(y)
         self.model.fit(x, y, batch_size=32, nb_epoch=epoch, verbose=verbose)
 
     def predict(self, s, target=False):
@@ -112,7 +113,7 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
         self.tree.update(idx, p)
         
         #-------------------- AGENT ---------------------------
-MEMORY_CAPACITY = 1000 # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 100000 # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 

@@ -66,6 +66,7 @@ class PolicyEstimator():
 
 
 class ValueEstimator():
+    
     """
     Value Function approximator. 
     """
