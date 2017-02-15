@@ -26,6 +26,22 @@ class Main(object):
             "diffMap": self.Map.diffMap
         }"""
         return self.Map.map, self.Map.diffMap, 1, self.done
+    
+    def AiStepNew(self):
+        
+        self.step(False)
+        player = self.players[0]
+        state = { # Has to be a new method for Multiplayer + LFA
+        "map": self.Map.map,
+        "diffMap": self.Map.diffMap,
+        "playerPos": (int(player.x),int(player.y)),
+        "playerRot" : player.rotation,
+        "reward": 1,
+        "done": self.done
+        }
+    
+        return state
+
 
     def closeProgram(self): 
         pygame.quit() 

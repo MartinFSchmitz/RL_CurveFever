@@ -5,7 +5,7 @@ Created on 11.02.2017
 '''
 
 import itertools
-import matplotlib
+#import matplotlib
 import numpy as np
 import sys
 import collections

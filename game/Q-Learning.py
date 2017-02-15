@@ -14,15 +14,38 @@ from sklearn.kernel_approximation import RBFSampler
 import pygame
 from GameMode import Learn_SinglePlayer
 #------------------------------------------------------------------
+def getNewGameState(game, onlyState = True):
+    
+   state = game.AiStepNew()
+   p = state["playerPos"]
+   x = p[0]
+   y = p[1]
+   r = state["playerRot"]
+   features = np.array([x,y,r])
+   if onlyState: return features
+   else: return features, state["reward"],state["done"]
 
+
+# init Game Environment
+game = Learn_SinglePlayer()   
+game.firstInit()
+game.init(game, render = False)
+state = getNewGameState(game)
 
 # Feature Preprocessing: Normalize to zero mean and unit variance
 # We use a few samples from the observation space to do this
 #observation_examples = np.array([env.observation_space.sample() for x in range(10000)])
-observation_examples =np.array([0,2,1])   #what?
-print(observation_examples)
+observation_examples = []
+for i in range (0,1000):
+    game.init(game, render = False)
+    s = getNewGameState(game)
+    observation_examples.append(s)
+observation_examples = np.array (observation_examples)
+#print(observation_examples)
+
 #observation_examples.reshape(1, -1)
 scaler = sklearn.preprocessing.StandardScaler()
+
 scaler.fit(observation_examples)
 # Used to converte a state to a featurizes represenation.
 # We use RBF kernels with different variances to cover different parts of the space
@@ -47,7 +70,7 @@ class Estimator():
     Value Function approximator. 
     """
     
-    def __init__(self, game):
+    def __init__(self, init_state):
         # We create a separate model for each action in the environment's
         # action space. Alternatively we could somehow encode the action
         # into the features, but this way it's easier to code up.
@@ -57,7 +80,7 @@ class Estimator():
             # We need to call partial_fit once to initialize the model
             # or we get a NotFittedError when trying to make a prediction
             # This is quite hacky.
-            model.partial_fit([self.featurize_state(np.array([0,2,1]))], [0])
+            model.partial_fit([self.featurize_state(init_state)], [0]) #any state, just to avoid stupid error
             self.models.append(model)
     
     def featurize_state(self, state):
@@ -141,6 +164,7 @@ def q_learning(game, estimator, num_episodes, discount_factor=0.99, epsilon=0.1,
     """
 
     # Keeps track of useful statistics
+    stats=None
     #stats = plotting.EpisodeStats(
     #    episode_lengths=np.zeros(num_episodes),
     #    episode_rewards=np.zeros(num_episodes))    
@@ -159,24 +183,20 @@ def q_learning(game, estimator, num_episodes, discount_factor=0.99, epsilon=0.1,
         
         # Reset the environment and pick the first action
         game.init(game, False)
-        map , diffMap , reward, done = game.AiStep() # 1st frame no action
-        state = np.array([0,2,1]) # ToDo: compute state out of given variables
+        state = getNewGameState(game)
         # One step in the environment
         for t in itertools.count():
                         
             # Choose an action to take
             action_probs = policy(state)
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-
+            game.players[0].action = action-1 # converts interval (0,2) to (-1,1)
             # Take a step
-            #next_state, reward, done, _ = env.step(action)
-            next_map ,mext_diffMap, reward, done = game.AiStep()
+            next_state, reward, done = getNewGameState(game, onlyState = False)
             
             # Update statistics
             #stats.episode_rewards[i_episode] += reward
             #stats.episode_lengths[i_episode] = t
-            
-            next_state = np.array([0,2,1]) # ToDo: here featurize?
             
             # TD Update
             q_values_next = estimator.predict(next_state)
@@ -189,6 +209,7 @@ def q_learning(game, estimator, num_episodes, discount_factor=0.99, epsilon=0.1,
             estimator.update(state, action, td_target)
                 
             if done:
+                print("done episode: ", i_episode)
                 break
                 
             state = next_state
@@ -196,8 +217,6 @@ def q_learning(game, estimator, num_episodes, discount_factor=0.99, epsilon=0.1,
     return stats
 #------------------------------------------------------------------
 
-# init Game Environment
-game = Learn_SinglePlayer()   
-game.firstInit()
-estimator = Estimator(game)
-stats = q_learning(game, estimator, 100, epsilon=0.1)
+
+estimator = Estimator(state)
+stats = q_learning(game, estimator, 10000, epsilon=0.1)
