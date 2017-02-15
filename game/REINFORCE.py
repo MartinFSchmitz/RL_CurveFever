@@ -14,13 +14,6 @@ from GameMode import Learn_SinglePlayer
 from keras.models import load_model
 from keras.utils.np_utils import binary_logloss
 from keras import optimizers
-
-
-    
-#def REINFORCE_loss(y_true, y_pred): 
-    
-    
-    
 from keras.models import Sequential
 from keras.layers import *
 from keras.optimizers import *
@@ -81,12 +74,13 @@ class Policy_Brain:
         self.stateCnt = stateCnt
         self.actionCnt = actionCnt    
         self.model = self._createModel()
-
+        
 
     def _createModel(self): # Creating a CNN
         model = Sequential()
         self.picked_action_prob = 1
         self.target = 1
+        self.test = True
         
         # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
         #relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
@@ -110,19 +104,27 @@ class Policy_Brain:
         return K.mean( a, axis=-1 )    
     
     def hubert_loss(self,y_true, y_pred):    # sqrt(1+a^2)-1
-        print ("true",y_true,"pred",y_pred)
         err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
-        print("result", K.mean( K.sqrt(1+K.square(err))-1, axis=-1 ))
+        print(err)
+        #self.test = False
         return K.mean( K.sqrt(1+K.square(err))-1, axis=-1 )
     
     def train(self, state, target, action, action_prob, epoch=1, verbose=0):
         # x=input, y=target, batch_size = Number of samples per gradient update
         #nb_epoch = number of the epoch, 
         # verbose: 0 for no logging to stdout, 1 for progress bar logging, 2 for one log line per epoch.
+        print("train...")
         self.picked_action_prob = action_prob
         self.target = target
-        self.model.train_on_batch(state.reshape(1 ,2 , 82, 82), action, class_weight=None, sample_weight=None)
-        #self.model.fit(state.reshape(1 ,2 , 82, 82), action, batch_size=1, nb_epoch=epoch, verbose=verbose)
+
+        #print(action)
+        action_array = [0,0,0]
+        action_array[action]=1
+        action_array =np.array([action_array])
+        opt = RMSprop(lr=0.00025)
+        self.model.compile(loss=self.hubert_loss, optimizer=opt)
+        self.model.train_on_batch(state.reshape(1 ,2 , 82, 82), action_array)
+        #self.model.fit(state.reshape(1 ,2 , 82, 82), action_array, batch_size=1, nb_epoch=epoch, verbose=verbose)
         
     def predict(self, s):
         return self.model.predict_proba(s)
@@ -145,7 +147,7 @@ def reinforce(game, policy_brain, value_brain, num_episodes, discount_factor):
     """
     REINFORCE (Monte Carlo Policy Gradient) Algorithm. Optimizes the policy
     function approximator using policy gradient.
-    
+
     Args:
         env: OpenAI environment.
         estimator_policy: Policy Function to be optimized 
@@ -179,12 +181,10 @@ def reinforce(game, policy_brain, value_brain, num_episodes, discount_factor):
             # Take a step
             action_probs = policy_brain.predictOne(state) # create Array with action Probabilities, sum = 1
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
-            print(action)
+            #print(action)
             map ,diffMap, reward, done = game.AiStep()
             next_state = np.array([map, diffMap])#last two screens
             action_prob=action_probs[action]            
-            #s = s_
-            #next_state, reward, done, _ = env.step(action)
 
             # Keep track of the transition
             episode.append(Transition(
@@ -194,12 +194,9 @@ def reinforce(game, policy_brain, value_brain, num_episodes, discount_factor):
             #stats.episode_rewards[i_episode] += reward
             #stats.episode_lengths[i_episode] = t
             all_rewards += reward
-            # Print out which step we're on, useful for debugging.
 
-            #print("\rStep {} @ Episode {}/{} ({})".format(t, i_episode + 1, num_episodes, stats.episode_rewards[i_episode - 1]), end="")
-            # sys.stdout.flush()
 
-            if t==3: #done eigentlich
+            if t==3 : # 
                 break
             state = next_state            
         print("Episode",i_episode + 1, "Reward", all_rewards )
@@ -216,9 +213,11 @@ def reinforce(game, policy_brain, value_brain, num_episodes, discount_factor):
             advantage = total_return - baseline_value
             # Update our policy estimator
             policy_brain.train(transition.state, advantage, transition.action, transition.action_prob)
-    
+            
+
     stats = 0
     return stats    
+
 
 #------------------------------------------------------------------
 # HYPER PARAMETERS
