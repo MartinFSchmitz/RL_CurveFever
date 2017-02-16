@@ -32,6 +32,7 @@ class SinglePlayer (Main):
         Player = AiPlayer.AiPlayer(self.mapSize,color_one,self.screenScale)
         #Player = AI_Loader.DQN_Player(self.mapSize,color_one,self.screenScale)
         #Player.load_DQN()
+        Player = AI_Loader.LFA_Player(self.mapSize,color_one,self.screenScale)
         self.players.append(Player)
     
     def stepScore(self):

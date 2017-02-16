@@ -3,6 +3,7 @@ Created on 12.02.2017
 
 @author: Martin
 '''
+import cPickle as pickle
 import itertools
 #import matplotlib
 import numpy as np
@@ -60,7 +61,6 @@ featurizer.fit(scaler.transform(observation_examples))
 #------------------------------------------------------------------
 
 # HYPER-PARAMETERS
-
 stateCnt  = (2, 82, 82) # 2=Map + diffMap, height, width
 actionCnt = 3 # left, right, straight
 
@@ -200,6 +200,7 @@ def q_learning(game, estimator, num_episodes, discount_factor=0.99, epsilon=0.1,
             
             # TD Update
             q_values_next = estimator.predict(next_state)
+            #
             
             # Use this code for Q-Learning
             # Q-Value TD Target
@@ -209,7 +210,8 @@ def q_learning(game, estimator, num_episodes, discount_factor=0.99, epsilon=0.1,
             estimator.update(state, action, td_target)
                 
             if done:
-                print("done episode: ", i_episode)
+                print("done episode: ", i_episode, "time:", t )
+                if i_episode % 100 == 0: pickle.dump(estimator, open('lfa/save.p', 'wb'))
                 break
                 
             state = next_state
