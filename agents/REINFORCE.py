@@ -1,122 +1,194 @@
 '''
-Created on 31.12.2016
+Created on 17.02.2017
 
 @author: Martin
 '''
-from _elementtree import tostring
 
-""" Trains an agent with REINFORCE Policy Gradients on Zatacka."""
-import pygame
-import game.GameMode
+import itertools
+#import matplotlib
 import numpy as np
-import cPickle as pickle
+import sys
+import collections
+import pygame
+from GameMode import Learn_SinglePlayer
+from keras.models import load_model
+from keras.utils.np_utils import binary_logloss
+from keras import optimizers
+from keras.models import Sequential
+from keras.layers import *
+from keras.optimizers import *
+
+#-------------------- BRAIN ---------------------------
+
+class Policy_Brain:
+    
+    def __init__(self, stateCnt, actionCnt):
+        self.stateCnt = stateCnt
+        self.actionCnt = actionCnt    
+        self.model = self._createModel()
+        
+
+    def _createModel(self): # Creating a CNN
+        model = Sequential()
+        self.picked_action_prob = 1
+        self.target = 1
+        self.test = True
+        
+        # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
+        #relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
+        model.add(Convolution2D(64, 8, 8, subsample=(4,4), activation='relu', input_shape=(self.stateCnt)))
+        #model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(self.stateCnt)))     
+        #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
+        #model.add(Convolution2D(64, 3, 3, activation='relu'))
+        model.add(Flatten())
+        model.add(Dense(output_dim=512, activation='relu'))
+
+        model.add(Dense(output_dim=actionCnt, activation='softmax'))
+        
+        opt = RMSprop(lr=0.00025) #RMSprob is a popular adaptive learning rate method 
+        #REINFORCE_loss = -np.log(self.picked_action_prob) * self.target 
+        model.compile(loss=self.hubert_loss, optimizer=opt)
+
+        return model
+    def REINFORCE_loss(self, y_true, y_pred):    # sqrt(1+a^2)-1
+        #err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
+        a =  -np.log(self.picked_action_prob) * self.target 
+        return K.mean( a, axis=-1 )    
+    
+    def hubert_loss(self,y_true, y_pred):    # sqrt(1+a^2)-1
+        err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
+        print(err)
+        #self.test = False
+        return K.mean( K.sqrt(1+K.square(err))-1, axis=-1 )
+    
+    def train(self, state, target, action, action_prob, epoch=1, verbose=0):
+        # x=input, y=target, batch_size = Number of samples per gradient update
+        #nb_epoch = number of the epoch, 
+        # verbose: 0 for no logging to stdout, 1 for progress bar logging, 2 for one log line per epoch.
+        print("train...")
+        self.picked_action_prob = action_prob
+        self.target = target
+
+        #print(action)
+        action_array = [0,0,0]
+        action_array[action]=1
+        action_array =np.array([action_array])
+        opt = RMSprop(lr=0.00025)
+        self.model.compile(loss=self.hubert_loss, optimizer=opt)
+        self.model.train_on_batch(state.reshape(1 ,2 , 82, 82), action_array)
+        #self.model.fit(state.reshape(1 ,2 , 82, 82), action_array, batch_size=1, nb_epoch=epoch, verbose=verbose)
+        
+    def predict(self, s):
+        return self.model.predict_proba(s)
+
+    def predictOne(self, s, target=False):
+        return self.predict(s.reshape(1, 2, 80+2, 80+2)).flatten()#8 0 = mapsize   try like this...
+
+
+class Value_Brain:
+    def __init__(self):
+        pass
+
+    def train(self, state, total_return):
+        pass
+
+    def predict(self, state):
+        return 1  
+
+def reinforce(game, policy_brain, value_brain, num_episodes, discount_factor):
+    """
+    REINFORCE (Monte Carlo Policy Gradient) Algorithm. Optimizes the policy
+    function approximator using policy gradient.
+
+    Args:
+        env: OpenAI environment.
+        estimator_policy: Policy Function to be optimized 
+        estimator_value: Value function approximator, used as a baseline
+        num_episodes: Number of episodes to run for
+        discount_factor: Time-discount factor
+    
+    Returns:
+        An EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards.
+    """
+
+    # Keeps track of useful statistics
+    #stats = plotting.EpisodeStats(
+    #    episode_lengths=np.zeros(num_episodes),
+    #    episode_rewards=np.zeros(num_episodes))    
+    
+    Transition = collections.namedtuple("Transition", ["state", "action","action_prob", "reward", "next_state", "done"])
+    
+    for i_episode in range(num_episodes):
+        # Reset the environment and pick the first action
+        game.init(game, False)
+        map ,diffMap , reward, done = game.AiStep() # 1st frame no action
+        state = np.array([map, diffMap])       
+        
+        episode = []
+        all_rewards = 0 # only for debugging
+        
+        # One step in the environment
+        for t in itertools.count():
+            
+            # Take a step
+            action_probs = policy_brain.predictOne(state) # create Array with action Probabilities, sum = 1
+            action = np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
+            #print(action)
+            map ,diffMap, reward, done = game.AiStep()
+            next_state = np.array([map, diffMap])#last two screens
+            action_prob=action_probs[action]            
+
+            # Keep track of the transition
+            episode.append(Transition(
+              state=state, action=action, action_prob=action_prob, reward=reward, next_state=next_state, done=done))
+            
+            # Update statistics
+            #stats.episode_rewards[i_episode] += reward
+            #stats.episode_lengths[i_episode] = t
+            all_rewards += reward
+
+
+            if t==3 : # 
+                break
+            state = next_state            
+        print("Episode",i_episode + 1, "Reward", all_rewards )
+        
+        # Go through the episode and make policy updates
+        for t, transition in enumerate(episode):
+            # The return after this timestep
+            total_return = sum(discount_factor**i * t.reward for i, t in enumerate(episode[t:]))
+            # Update our value estimator
+            #value_brain.train(transition.state, total_return)
+            # Calculate baseline/advantage
+            #baseline_value = value_brain.predictOne(transition.state)   
+            baseline_value = 0     #temporary    
+            advantage = total_return - baseline_value
+            # Update our policy estimator
+            policy_brain.train(transition.state, advantage, transition.action, transition.action_prob)
+            
+
+    stats = 0
+    return stats    
+
+
+#------------------------------------------------------------------
+# HYPER PARAMETERS
+GAMMA = 0.99
+MAX_EPISODES = 2000
+
+#------------------------------------------------------------------
+
 
 # init Game Environment
-game = game.GameMode.SinglePlayer()   
-pygame.init()    
+game = Learn_SinglePlayer()   
 game.firstInit()
-game.screen = pygame.display.set_mode(game.screenSize)
-game.clock = pygame.time.Clock()
-game.init(game) 
+#game_old.init(game_old, False)
 
-
-# hyperparameters
-H = 200 # number of hidden layer neurons
-batch_size = 100 # every how many episodes to do a param update?
-learning_rate = 1e-4
-gamma = 0.99 # discount factor for reward
-decay_rate = 0.99 # decay factor for RMSProp leaky sum of grad^2
-resume = False # resume from previous checkpoint?
-render = True
-
-# model initialization
-D = (game.mapSize[0]+2) * (game.mapSize[1]+2) # input dimensionality: 80x80 grid (as long as Mapsize = 80x80)
-if resume:
-    model = pickle.load(open('save.p', 'rb'))
-else:
-    model = {} # W1 = first Layer weights , W2 = second Layer weights
-    model['W1'] = np.random.randn(H,D) / np.sqrt(D) # "Xavier" initialization
-    model['W2'] = np.random.randn(H) / np.sqrt(H)
-
-grad_buffer = { k : np.zeros_like(v) for k,v in model.iteritems() } # update buffers that add up gradients over a batch
-rmsprop_cache = { k : np.zeros_like(v) for k,v in model.iteritems() } # rmsprop memory
-
-episode_number = 0
-
-def sigmoid(x): 
-    return 1.0 / (1.0 + np.exp(-x)) # sigmoid "squashing" function to interval [0,1]
-
-# book-keeping
-def book_keeping():        
-    if episode_number % 100 == 0: pickle.dump(model, open('KNNs/save_' + str(episode_number) + '.p', 'wb'))
-
-def discount_rewards(r):
-    """ take 1D float array of rewards and compute discounted reward """
-    discounted_r = np.zeros_like(r)
-    running_add = 0
-    for t in reversed(xrange(0, r.size)):
-        if r[t] != 0: running_add = 0 # reset the sum, since this was a game boundary (pong specific!)
-        running_add = running_add * gamma + r[t]
-        discounted_r[t] = running_add
-    return discounted_r
-
-def policy_forward(x): # Matrix-Mult: LxM * MxN = LxN
-    h = np.dot(model['W1'], x) # Kantengewichte * Input = Hiddenlayer-Output as H x 1 Vector
-    # ([ H x (D*D)] * [(D*D) x 1] = [H x 1] )
-    h[h<0] = 0 # ReLU nonlinearity
-    logp = np.dot(model['W2'], h) # [1 x H] * [H x 1] = 1 x 1 -->Output
-    p = sigmoid(logp)
-    return p, h # return probability of taking action 2, and hidden state
-
-def policy_backward(eph, epdlogp):
-    """ backward pass. (eph is array of intermediate hidden states) """
-    dW2 = np.dot(eph.T, epdlogp).ravel()
-    dh = np.outer(epdlogp, model['W2']) #outer a,b = dot a^T,b (glaub ich)
-    dh[eph <= 0] = 0 # backpro prelu
-    dW1 = np.dot(dh.T, epx)      # epx = xs (also observation-list) nach vstack
-    return {'W1':dW1, 'W2':dW2}
-
-
-xs = [] # List to append: x = observation (pixel) 
-hs = [] # List to append: h = Hidden Layer Output, each step
-dlogps = [] # List to append: dlogp = grad that encourages the action, each step
-drs = [] # List to append: reward = currend reward , each step
-
-running_reward = None
-reward_sum = 0
-episode_number = 0
-action = 1
-
-while(True):
-    
-    # step the environment and get new measurements
-    game.players[0].action = action
-    state, reward, done = game.AiStep()
-    x  = state["map"].flatten()
-    
-    # forward the policy network and sample an action from the returned probability
-    aprob, h = policy_forward(x)
-    #action = 2 if np.random.uniform() < aprob else 3 # roll the dice!
-    
-    # record various intermediates (needed later for backprop)
-    xs.append(x) # observation
-    hs.append(h) # hidden state
-    y = 1 if action == 2 else 0 # a "fake label"
-    #dlogps.append(y - aprob) # grad that encourages the action that was taken to be taken (see http://cs231n.github.io/neural-networks-2/#losses if confused)
-    
-
-    reward_sum += reward    
-    drs.append(reward) # record reward (has to be done after we call step() to get reward for previous action)
-    
-    
-    #-------------------------------------
-    
-    
-    
-    if done == True: book_keeping()
-    """ Just For Test """
-    if render:
-        pygame.display.update()
-        game.clock.tick(30)
-
-
+stateCnt  = (2, game.mapSize[0]+2, game.mapSize[1]+2) # 2=Map + diffMap, height, width
+actionCnt = 3 # left, right, straight
+policy_brain = Policy_Brain(stateCnt, actionCnt)
+value_brain = Policy_Brain(stateCnt, actionCnt)
+    # Note, due to randomness in the policy the number of episodes you need to learn a good
+    # policy may vary. ~2000-5000 seemed to work well for me.
+print( "Start REINFORCE Learning process...")    
+stats = reinforce(game, policy_brain, value_brain, MAX_EPISODES, GAMMA)
