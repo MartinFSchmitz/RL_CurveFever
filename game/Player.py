@@ -22,7 +22,7 @@ import sklearn.preprocessing
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 
-from agents import Greedy
+import Greedy
 class Player(object):
     
     def __init__(self,mapSize,color,

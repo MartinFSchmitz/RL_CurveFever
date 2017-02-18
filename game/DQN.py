@@ -303,7 +303,7 @@ try:
 
         if save_counter % SAVE_XTH_GAME == 0: # all x games, save the CNN
             save_counter += 1
-            agent.brain.model.save_weights("dqn/model_" + str(save_counter) + ".h5")
+            agent.brain.model.save_weights("data/dqn/model_" + str(save_counter) + ".h5")
             print("Saved model " + str(save_counter) + " to disk")
 
 finally:
@@ -312,6 +312,6 @@ finally:
         with open("model.json", "w") as json_file:
             json_file.write(model_json)
         #serialize weights to HDF5
-        agent.brain.model.save_weights("dqn/model_end.h5")
+        agent.brain.model.save_weights("data/dqn/model_end.h5")
         print("Saved FINAL model to disk.")
         print("-----------Finished Process----------")

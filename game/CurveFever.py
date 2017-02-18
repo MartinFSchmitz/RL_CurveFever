@@ -7,7 +7,6 @@ import sys
 import pygame
 import Map
 from Player import *
-import Map
 
 # Constants
 COLOR_ONE = (255,0,0)

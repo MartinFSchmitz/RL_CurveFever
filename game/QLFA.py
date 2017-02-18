@@ -14,7 +14,7 @@ import sklearn.preprocessing
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 import pygame
-from game.CurveFever import Learn_SinglePlayer
+from CurveFever import Learn_SinglePlayer
 
 
 # HYPER-PARAMETERS
@@ -231,7 +231,7 @@ def q_learning(game, estimator):
                 
             if done:
                 print("done episode: ", i_episode, "time:", t )
-                if i_episode % 100 == 0: pickle.dump(estimator.models, open('lfa/save.p', 'wb'))
+                if i_episode % 100 == 0: pickle.dump(estimator.models, open('data/lfa/save.p', 'wb'))
                 break
                 
             state = next_state
