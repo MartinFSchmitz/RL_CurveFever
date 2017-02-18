@@ -12,7 +12,7 @@ Created on 17.02.2017
 import random, numpy, math
 from SumTree import SumTree
 import pygame
-from game.CurveFever import Learn_SinglePlayer
+from CurveFever import Learn_SinglePlayer
 from keras.models import load_model
 from keras.utils.np_utils import binary_logloss
 from keras import optimizers
