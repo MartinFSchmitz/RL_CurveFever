@@ -21,8 +21,7 @@ from CurveFever import Learn_SinglePlayer
 STATE_CNT  = (2, 52, 52) # 2=Map + diffMap, height, width
 ACTION_CNT = 3 # left, right, straight
 
-NUM_EPISODES = 1000000
- 
+NUM_EPISODES = 1000 
 GAMMA = 0.99
 EPSILON = 0.1, 
 EPSILON_DECAY = 1.0
@@ -39,9 +38,9 @@ def preprocess_state(onlyState = True):
     
     state = game.AI_learn_step()
     p = state["playerPos"]
-    x = p[0]/52
-    y = p[1]/52
-    #r = state["playerRot"]/360
+    x = p[0]
+    y = p[1]
+    r = state["playerRot"]
     features = np.array([x,y,r])
     if onlyState: return features
     else: return features, state["reward"],state["done"]
@@ -52,6 +51,38 @@ game = Learn_SinglePlayer()
 game.first_init()
 game.init(game, render = False)
 state = preprocess_state()
+#------------------------------------------------------------------
+
+# weird Preprocessing...
+
+
+# Feature Preprocessing: Normalize to zero mean and unit variance
+# We use a few samples from the observation space to do this
+#observation_examples = np.array([env.observation_space.sample() for x in range(10000)])
+observation_examples = []
+for i in range (0,1000):
+    game.init(game, render = False)
+    s = preprocess_state()
+    observation_examples.append(s)
+observation_examples = np.array (observation_examples)
+#print(observation_examples)
+
+#observation_examples.reshape(1, -1)
+scaler = sklearn.preprocessing.StandardScaler()
+
+scaler.fit(observation_examples)
+# Used to converte a state to a featurizes represenation.
+# We use RBF kernels with different variances to cover different parts of the space
+featurizer = sklearn.pipeline.FeatureUnion([
+        ("rbf1", RBFSampler(gamma=5.0, n_components=100)),
+        ("rbf2", RBFSampler(gamma=2.0, n_components=100)),
+        ("rbf3", RBFSampler(gamma=1.0, n_components=100)),
+        ("rbf4", RBFSampler(gamma=0.5, n_components=100))
+        ])
+featurizer.fit(scaler.transform(observation_examples))
+pickle.dump(featurizer, open('lfa/featurizer.p', 'wb'))
+
+
 
 #------------------------------------------------------------------
 class Estimator():
@@ -69,8 +100,16 @@ class Estimator():
             # We need to call partial_fit once to initialize the model
             # or we get a NotFittedError when trying to make a prediction
             # This is quite hacky.
-            model.partial_fit([init_state], [0]) #any state, just to avoid stupid error
+            model.partial_fit([self.featurize_state(init_state)], [0]) #any state, just to avoid stupid error
             self.models.append(model)
+    
+    def featurize_state(self, state):
+        """
+        Returns the featurized representation for a state.
+        """
+        scaled = scaler.transform([state])
+        featurized = featurizer.transform(scaled)
+        return featurized[0]
     
     def predict(self, s, a=None):
         """
@@ -86,17 +125,19 @@ class Estimator():
             in the environment where pred[i] is the prediction for action i.
             
         """
+        features = self.featurize_state(s)
         if not a:
-            return np.array([m.predict([s])[0] for m in self.models])
+            return np.array([m.predict([features])[0] for m in self.models])
         else:
-            return self.models[a].predict([s])[0]
+            return self.models[a].predict([features])[0]
     
     def update(self, s, a, y):
         """
         Updates the estimator parameters for a given state and action towards
         the target y.
         """
-        self.models[a].partial_fit([s], [y])
+        features = self.featurize_state(s)
+        self.models[a].partial_fit([features], [y])
         
         
 #------------------------------------------------------------------
