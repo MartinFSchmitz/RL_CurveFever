@@ -29,21 +29,32 @@ EPSILON_DECAY = 1.0
 MAX_EPSILON = 1
 MIN_EPSILON = 0.1
 
-EXPLORATION_STOP = 100000   # at this step epsilon will be 0.1  (1 000 000 in original paper)
+EXPLORATION_STOP = 10000   # at this step epsilon will be 0.1  (1 000 000 in original paper)
 LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 #------------------------------------------------------------------
-
+def distance(self, pos, targetPos): # return the distance to the next wall in given angle
+ 
+    # if target is hinter pos: nothing
+    #dist with pythagoras
+    #und winkel für cos
+    #dann cos(alpha)/d
+    # 0 degree == turn right
+    #x - t_x = delta_x
+    #y - t_y = delta_y
+    #dist = sqrt(delta_x^2 + delta_y^2)
+    #betta = 
     
+    alpha = betta + rotation (if < 180 grad)
+
+
 def preprocess_state(only_state = True):
     
     state = game.AI_learn_step()
     p = state["playerPos"]
     x = p[0]/52.0
     y = p[1]/52.0
-
     features = np.array([x,y])
-    print(p[0],p[1])
     if only_state: return features
     else: return features, state["reward"],state["done"]
 

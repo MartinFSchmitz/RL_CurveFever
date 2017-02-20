@@ -16,12 +16,11 @@ from sklearn.kernel_approximation import RBFSampler
 import pygame
 from CurveFever import Learn_SinglePlayer
 
-
 # HYPER-PARAMETERS
 STATE_CNT  = (2, 52, 52) # 2=Map + diffMap, height, width
 ACTION_CNT = 3 # left, right, straight
 
-NUM_EPISODES = 1000 
+NUM_EPISODES = 1000000 
 GAMMA = 0.99
 EPSILON = 0.1, 
 EPSILON_DECAY = 1.0
@@ -80,7 +79,7 @@ featurizer = sklearn.pipeline.FeatureUnion([
         ("rbf4", RBFSampler(gamma=0.5, n_components=100))
         ])
 featurizer.fit(scaler.transform(observation_examples))
-pickle.dump(featurizer, open('lfa/featurizer.p', 'wb'))
+#pickle.dump(featurizer, open('lfa/featurizer.p', 'wb'))
 
 
 
@@ -126,6 +125,7 @@ class Estimator():
             
         """
         features = self.featurize_state(s)
+        print(features)
         if not a:
             return np.array([m.predict([features])[0] for m in self.models])
         else:

@@ -16,6 +16,7 @@ BG_COLOR = (0, 0, 0)
 MAP_SIZE = (50,50)
 SCREEN_SCALE = 10
 
+
 class Main(object):
 
     def AI_learn_step(self):
@@ -47,6 +48,7 @@ class Main(object):
         if debugger > 5:
             self.done    
             print("ERROR: Stuck in State, Rotation: ", self.player.rotation)
+
         
         # Save endstate as screenshot
         if (self.done):
@@ -141,10 +143,10 @@ class SinglePlayer (Main):
     
     def create_players(self):
 
-        #self.player_1 = HumanPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
+        self.player_1 = HumanPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
         #self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
-        self.player_1 = DQNPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
+        #self.player_1 = DQNPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
         #Player.load_DQN()
         #Player_1 = AI_Loader.LFA_Player(MAP_SIZE,color_one,SCREEN_SCALE)
         self.multi = False
