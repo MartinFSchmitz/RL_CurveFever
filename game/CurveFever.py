@@ -45,8 +45,8 @@ class Main(object):
         if self.player_1.pos_updated() :debugger =0
         else: debugger +=1
         if debugger > 5:
-             self.done    
-             print("ERROR: Stuck in State, Rotation: ", self.player.rotation)
+            self.done    
+            print("ERROR: Stuck in State, Rotation: ", self.player.rotation)
         
         # Save endstate as screenshot
         if (self.done):
