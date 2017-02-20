@@ -259,7 +259,7 @@ class Environment:
                 agent.replay()                
                 s = s_
             else: 
-                map ,diffMap, r, done = self.preprocess_state()   
+                map ,diffMap, r, done = self.preprocess_state()       
             counter+=1
             R+=r
             if done:    #terminal state  

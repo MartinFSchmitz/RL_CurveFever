@@ -40,6 +40,14 @@ class Main(object):
         """
             Perform one step of game emulation.
         """
+        #Debugging
+        debugger = 0
+        if self.player_1.pos_updated() :debugger =0
+        else: debugger +=1
+        if debugger > 5:
+             self.done    
+             print("ERROR: Stuck in State, Rotation: ", self.player.rotation)
+        
         # Save endstate as screenshot
         if (self.done):
             if(self.saveScreen > 0):
@@ -99,7 +107,8 @@ class Main(object):
 
     def first_init(self):
         self.screenSize = (
-            MAP_SIZE[0] * SCREEN_SCALE, MAP_SIZE[1] * SCREEN_SCALE)
+            MAP_SIZE[0
+                     ] * SCREEN_SCALE, MAP_SIZE[1] * SCREEN_SCALE)
 
         self.pause = False
 

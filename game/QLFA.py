@@ -29,21 +29,22 @@ EPSILON_DECAY = 1.0
 MAX_EPSILON = 1
 MIN_EPSILON = 0.1
 
-EXPLORATION_STOP = 500000   # at this step epsilon will be 0.1  (1 000 000 in original paper)
+EXPLORATION_STOP = 100000   # at this step epsilon will be 0.1  (1 000 000 in original paper)
 LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 #------------------------------------------------------------------
 
     
-def preprocess_state(onlyState = True):
+def preprocess_state(only_state = True):
     
     state = game.AI_learn_step()
     p = state["playerPos"]
-    x = p[0]/52
-    y = p[1]/52
-    #r = state["playerRot"]/360
-    features = np.array([x,y,r])
-    if onlyState: return features
+    x = p[0]/52.0
+    y = p[1]/52.0
+
+    features = np.array([x,y])
+    print(p[0],p[1])
+    if only_state: return features
     else: return features, state["reward"],state["done"]
 
 
@@ -86,6 +87,7 @@ class Estimator():
             in the environment where pred[i] is the prediction for action i.
             
         """
+
         if not a:
             return np.array([m.predict([s])[0] for m in self.models])
         else:
@@ -172,7 +174,7 @@ def q_learning(game, estimator):
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
             game.player_1.action = action-1 # converts interval (0,2) to (-1,1)
             # Take a step
-            next_state, reward, done = preprocess_state( onlyState = False)
+            next_state, reward, done = preprocess_state( only_state = False)
             
             # Update statistics
             #stats.episode_rewards[i_episode] += reward
@@ -184,10 +186,9 @@ def q_learning(game, estimator):
             # Use this code for Q-Learning
             # Q-Value TD Target
             td_target = reward + GAMMA * np.max(q_values_next)
-            
+            #print(q_values_next)
             # Update the function approximator using our target
             estimator.update(state, action, td_target)
-                
             if done:
                 print("done episode: ", i_episode, "time:", t )
                 if i_episode % 100 == 0: pickle.dump(estimator.models, open('data/lfa/save.p', 'wb'))

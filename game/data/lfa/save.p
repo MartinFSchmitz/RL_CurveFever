@@ -62,7 +62,7 @@ p25
 F0.14999999999999999
 sS't_'
 p26
-F2435
+F9109
 sS'coef_'
 p27
 cnumpy.core.multiarray
@@ -75,7 +75,7 @@ p29
 tS'b'
 tRp30
 (I1
-(L3L
+(L2L
 tcnumpy
 dtype
 p31
@@ -89,7 +89,7 @@ NNNI-1
 I-1
 I0
 tbI00
-S"E\xa0%\x11B\x00\xc7\xbf\x0f\x9f\x80f99\xc6\xbf\x9e&5P\xffj'@"
+S'\x81\xae\x1a\x885\x8c7@\x0b\x94\xed~x\xdb9@'
 tbsS'intercept_'
 p33
 g28
@@ -101,7 +101,7 @@ tRp34
 (L1L
 tg32
 I00
-S'\x1e\xb7G\xea=\x9b6@'
+S'\x08\xfb\xa3\xb8\x15`J@'
 tbsS'average'
 p35
 I00
@@ -142,7 +142,7 @@ F0.01
 sg25
 F0.14999999999999999
 sg26
-F2501
+F8688
 sg27
 g28
 (g29
@@ -150,10 +150,10 @@ g28
 tS'b'
 tRp38
 (I1
-(L3L
+(L2L
 tg32
 I00
-S"\x1b\xc7(\xdb\xc3\x15\xc4\xbf\xcd\xdd\xcc\xaf\xb7\x87\xbd\xbfO\xb2kF\xe1n'@"
+S'\x10\xea\xbe@&\xa07@5n!\xeb\x95\xda9@'
 tbsg33
 g28
 (g29
@@ -164,7 +164,7 @@ tRp39
 (L1L
 tg32
 I00
-S'4X^SS\x876@'
+S'\x8c\xc2\x81\x87\xeciJ@'
 tbsg35
 I00
 sbag2
@@ -204,7 +204,7 @@ F0.01
 sg25
 F0.14999999999999999
 sg26
-F2449
+F8700
 sg27
 g28
 (g29
@@ -212,10 +212,10 @@ g28
 tS'b'
 tRp42
 (I1
-(L3L
+(L2L
 tg32
 I00
-S"\xcb\x8b.\xc0\xf8\xbf\xb4\xbf~\x95Z\x9a\xe5\xae\xc0\xbf\xde#':Zt'@"
+S'\x01\x1b\xd9\xc1\x96\x9c7@z\x8c+4\x1f\xdc9@'
 tbsg33
 g28
 (g29
@@ -226,7 +226,7 @@ tRp43
 (L1L
 tg32
 I00
-S'\xa2\xad`8D\x9a6@'
+S'j\xf5 \x03\x00dJ@'
 tbsg35
 I00
 sba.

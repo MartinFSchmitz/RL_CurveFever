@@ -12,7 +12,6 @@ class Map(object):
         
         self.size = (screenSize[0]+2,screenSize[1]+2)
         self.map = np.zeros(shape=self.size)
-        self.zeroMap = self.map
         for x in range(0, self.size[1]):
             self.map[0,x] = 1
             self.map[-1,x] = 1
