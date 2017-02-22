@@ -18,7 +18,6 @@ from keras.utils.np_utils import binary_logloss
 from keras import optimizers
 
 
-
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
     return K.mean( K.sqrt(1+K.square(err))-1, axis=-1 )
@@ -30,7 +29,7 @@ from keras.optimizers import *
 STATE_CNT  = (2,52,52) # 2=Map + diffMap, height, width
 ACTION_CNT = 3 # left, right, straight
 
-MEMORY_CAPACITY = 100 # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 200000 # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -44,7 +43,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 5  # all x games, save the CNN
+SAVE_XTH_GAME = 10000  # all x games, save the CNN
 LEARNING_FRAMES = 10000000
 
 #-------------------- BRAIN ---------------------------

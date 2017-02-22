@@ -15,10 +15,10 @@ import sklearn.preprocessing
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 
-STATE_CNT  = (2,52,52) # 2=Map + diffMap, height, width
+STATE_CNT  = (2) # 2=Map + diffMap, height, width
 ACTION_CNT = 3 # left, right, straight
 
-MEMORY_CAPACITY = 100000 # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 1000 # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -59,21 +59,21 @@ class Brain:
             
         return models
 
-    def train(self, x, y, epoch=1, verbose=0):
-        # x=input, y=target, batch_size = Number of samples per gradient update
-        #nb_epoch = number of the epoch, 
-        # verbose: 0 for no logging to stdout, 1 for progress bar logging, 2 for one log line per epoch.
-        self.model.fit(x, y, batch_size=32, nb_epoch=epoch, verbose=verbose)
+    def train(self, x, y, a, epoch=1, verbose=0):
 
+        #self.model.fit(x, y, batch_size=32, nb_epoch=epoch, verbose=verbose)
+        self.models[a].partial_fit([x], [y])
+        
     def predict(self, s, target=False):
         if target:
-            return self.model_.predict(s)
+            
+            return np.array([m.predict(s)[0] for m in self.model_])
         else:
-            return self.model.predict(s)
+            print(s)
+            #return self.model.predict(s)
+            return np.array([m.predict(s)[0] for m in self.model])
 
-    def predictOne(self, s, target=False):
-        #return self.predict(s.reshape(1, (2, 80+2, 80+2)), target).flatten() #8 0 = mapsize
-        return self.predict(s.reshape(1, 2, 50+2, 50+2), target).flatten() #8 0 = mapsize   try like this...
+
     def updateTargetModel(self):
         self.model_.set_weights(self.model.get_weights())
 
@@ -132,11 +132,11 @@ class Agent:
         if random.random() < self.epsilon:
             return random.randint(0, ACTION_CNT-1)
         else:
-            return np.argmax(self.brain.predictOne(s))
+            return np.argmax(self.brain.predict(s))
 
     def observe(self, sample):  # in (s, a, r, s_) format
         
-        x, y, errors = self._getTargets([(0, sample)])
+        x, y, z, errors = self._getTargets([(0, sample)])
         self.memory.add(errors[0], sample)
 
         if self.steps % UPDATE_TARGET_FREQUENCY == 0:
@@ -157,8 +157,9 @@ class Agent:
         p_ = agent.brain.predict(states_, target=False)
         pTarget_ = agent.brain.predict(states_, target=True)
         
-        x = np.zeros((len(batch), STATE_CNT[0], STATE_CNT[1], STATE_CNT[2]))
+        x = np.zeros((len(batch), STATE_CNT))
         y = np.zeros((len(batch), ACTION_CNT))
+        z = np.zeros(len(batch))
         errors = np.zeros(len(batch))
         
         for i in range(len(batch)):
@@ -174,20 +175,21 @@ class Agent:
 
             x[i] = s
             y[i] = t
+            z[i] = a
             errors[i] = abs(oldVal - t[a])
 
-        return (x, y, errors)
+        return (x, y, z, errors)
 
     def replay(self): # Update Tuples and Errors, than train the CNN   
         batch = self.memory.sample(BATCH_SIZE)
-        x, y, errors = self._getTargets(batch)
+        x, y, a, errors = self._getTargets(batch)
 
         #update errors
         for i in range(len(batch)):
             idx = batch[i][0]
             self.memory.update(idx, errors[i])
 
-        self.brain.train(x, y)
+        self.brain.train(x, y, a)
 
 class RandomAgent: # Takes Random Action
 
@@ -224,8 +226,7 @@ class Environment:
 
     def run(self, agent, game, count):                
 
-        map ,diffMap , r, done = self.preprocess_state() # 1st frame no action
-        s = np.array([map, diffMap])       
+        s, r, done = self.preprocess_state() # 1st frame no action   
         R = 0
         k = 4 # step hopper
         counter = 0
@@ -234,13 +235,12 @@ class Environment:
             if (counter % k == 0):
                 a = agent.act(s) # agent decides an action        
                 game.player_1.action = a-1 # converts interval (0,2) to (-1,1)
-                map ,diffMap, r, done = self.preprocess_state()
-                s_ = np.array([map, diffMap])#last two screens
+                s_, r, done = self.preprocess_state()
                 agent.observe( (s, a, r, s_) ) # agent adds the new sample
                 agent.replay()                
                 s = s_
             else: 
-                map ,diffMap, r, done = self.preprocess_state()       
+                s, r, done = self.preprocess_state()       
             counter+=1
             R+=r
             if done:    #terminal state  
@@ -271,28 +271,21 @@ try:
     randomAgent = None
 
     print("Starting learning")
-    count = 0
-    save_counter = 0
+    frame_count = 0
+    episode_count = 0
+    
     while True:
-        if count >= LEARNING_FRAMES: break
-        count = env.run(agent, game, count)
-                    # serialize model to JSON
-        #model_json = agent.brain.model.to_json()
-        #with open("model.json", "w") as json_file:
-            #json_file.write(model_json)
-        # serialize weights to HDF5
+        if frame_count >= LEARNING_FRAMES: break
+        frame_count = env.run(agent, game, frame_count)
+        episode_count += 1
 
-        if save_counter % SAVE_XTH_GAME == 0: # all x games, save the CNN
-            save_counter += 1
-            agent.brain.model.save_weights("data/dqn/model_" + str(save_counter) + ".h5")
-            print("Saved model " + str(save_counter) + " to disk")
+        if episode_count % SAVE_XTH_GAME  == 0: # all x games, save the CNN %xtesspiel%savexthgame == 0
+            save_counter =  episode_count / SAVE_XTH_GAME
+
+            print("Didnt Save model " + str(save_counter) + " to disk")
 
 finally:
-            # serialize model to JSON
-        model_json = agent.brain.model.to_json()
-        with open("model.json", "w") as json_file:
-            json_file.write(model_json)
-        #serialize weights to HDF5
-        agent.brain.model.save_weights("data/dqn/model_end.h5")
-        print("Saved FINAL model to disk.")
+
+        print("Didnt Save FINAL model to disk.")
         print("-----------Finished Process----------")
+
