@@ -33,7 +33,7 @@ EXPLORATION_STOP = 10000   # at this step epsilon will be 0.1  (1 000 000 in ori
 LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 #------------------------------------------------------------------
-def distance(self, pos, targetPos): # return the distance to the next wall in given angle
+#def distance(self, pos, targetPos): # return the distance to the next wall in given angle
  
     # if target is hinter pos: nothing
     #dist with pythagoras
@@ -45,7 +45,7 @@ def distance(self, pos, targetPos): # return the distance to the next wall in gi
     #dist = sqrt(delta_x^2 + delta_y^2)
     #betta = 
     
-    alpha = betta + rotation (if < 180 grad)
+    #alpha = betta + rotation (if < 180 grad)
 
 
 def preprocess_state(only_state = True):

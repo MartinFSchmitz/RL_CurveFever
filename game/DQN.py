@@ -30,7 +30,7 @@ from keras.optimizers import *
 STATE_CNT  = (2,52,52) # 2=Map + diffMap, height, width
 ACTION_CNT = 3 # left, right, straight
 
-MEMORY_CAPACITY = 100000 # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 100 # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -44,7 +44,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 5000  # all x games, save the CNN
+SAVE_XTH_GAME = 5  # all x games, save the CNN
 LEARNING_FRAMES = 10000000
 
 #-------------------- BRAIN ---------------------------
@@ -264,7 +264,7 @@ class Environment:
             R+=r
             if done:    #terminal state  
                 break
-        #print("Total reward:", R)
+        print("Total reward:", R)
         return count + (counter/k)
 #-------------------- MAIN ----------------------------
 
@@ -290,19 +290,21 @@ try:
     randomAgent = None
 
     print("Starting learning")
-    count = 0
-    save_counter = 0
+    frame_count = 0
+    episode_count = 0
+    
     while True:
-        if count >= LEARNING_FRAMES: break
-        count = env.run(agent, game, count)
+        if frame_count >= LEARNING_FRAMES: break
+        frame_count = env.run(agent, game, frame_count)
+        episode_count += 1
                     # serialize model to JSON
         #model_json = agent.brain.model.to_json()
         #with open("model.json", "w") as json_file:
             #json_file.write(model_json)
         # serialize weights to HDF5
 
-        if save_counter % SAVE_XTH_GAME == 0: # all x games, save the CNN
-            save_counter += 1
+        if episode_count % SAVE_XTH_GAME  == 0: # all x games, save the CNN %xtesspiel%savexthgame == 0
+            save_counter =  episode_count / SAVE_XTH_GAME
             agent.brain.model.save_weights("data/dqn/model_" + str(save_counter) + ".h5")
             print("Saved model " + str(save_counter) + " to disk")
 
