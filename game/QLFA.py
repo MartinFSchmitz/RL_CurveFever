@@ -37,7 +37,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
  
     # if target is hinter pos: nothing
     #dist with pythagoras
-    #und winkel für cos
+    #und winkel fuer cos
     #dann cos(alpha)/d
     # 0 degree == turn right
     #x - t_x = delta_x
@@ -83,7 +83,7 @@ class Estimator():
             # This is quite hacky.
             model.partial_fit([init_state], [0]) #any state, just to avoid stupid error
             self.models.append(model)
-    
+            
     def predict(self, s, a=None):
         """
         Makes value function predictions.
@@ -98,7 +98,8 @@ class Estimator():
             in the environment where pred[i] is the prediction for action i.
             
         """
-
+        print("s",s)
+        print("p",self.models[0].predict([s])[0] )
         if not a:
             return np.array([m.predict([s])[0] for m in self.models])
         else:
@@ -109,6 +110,7 @@ class Estimator():
         Updates the estimator parameters for a given state and action towards
         the target y.
         """
+        print("a", a, "x", s, "y",y)
         self.models[a].partial_fit([s], [y])
         
         

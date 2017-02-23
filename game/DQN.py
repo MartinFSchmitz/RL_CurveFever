@@ -180,8 +180,9 @@ class Agent:
         for i in range(len(batch)):
             o = batch[i][1]
             s = o[0]; a = o[1]; r = o[2]; s_ = o[3]
-            
+
             t = p[i]
+
             oldVal = t[a]
             if s_ is None:
                 t[a] = r
