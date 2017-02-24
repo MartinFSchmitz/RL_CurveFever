@@ -4,7 +4,7 @@ Created on Feb 22, 2017
 @author: marti
 '''
 
-
+import copy
 import random,  math
 import numpy as np
 from SumTree import SumTree
@@ -15,10 +15,10 @@ import sklearn.preprocessing
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 
-STATE_CNT  = (2) # 2=Map + diffMap, height, width
+STATE_CNT  = (2706) # 52x52 = 2704  + 2 wegen pos
 ACTION_CNT = 3 # left, right, straight
 
-MEMORY_CAPACITY = 1000 # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 100 # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -40,42 +40,75 @@ LEARNING_FRAMES = 10000000
 class Brain:
     def __init__(self):
 
-        self.model = self._createModel()
-        self.model_ = self._createModel()  # target network
 
-    def _createModel(self): # Creating a CNN
-
+        
+        
+        
         # We create a separate model for each action in the environment's
         # action space. Alternatively we could somehow encode the action
         # into the features, but this way it's easier to code up.
-        models = []
+        self.model = []
+        a = np.zeros(STATE_CNT)
+
         for _ in range(ACTION_CNT):
-            model = SGDRegressor(learning_rate="constant")
+            m = SGDRegressor(learning_rate="constant")
             # We need to call partial_fit once to initialize the model
             # or we get a NotFittedError when trying to make a prediction
             # This is quite hacky.
-            model.partial_fit(np.array([0.5,0.5]), [0]) #any state, just to avoid stupid error
-            models.append(model)
-            
-        return models
+            m.partial_fit([a], [0]) #any state, just to avoid stupid error
+            self.model.append(m)
+        self.updateTargetModel()
+        
 
+    def train_single(self, x, y, a, epoch=1, verbose=0): # old and not used anymore
+
+        #self.model.fit(x, y, batch_size=32, nb_epoch=epoch, verbose=verbose)
+        
+        batch_size = a.size
+        for i in range (batch_size):
+            action = int(a[i])
+            self.model[action].partial_fit(x[i].reshape(1,-1), [y[i][action]])
+        
     def train(self, x, y, a, epoch=1, verbose=0):
 
         #self.model.fit(x, y, batch_size=32, nb_epoch=epoch, verbose=verbose)
-        self.models[a].partial_fit([x], [y])
+
+        state = [[],[],[]]
+        target = [[],[],[]]
+        batch_size = a.size
+        for i in range (batch_size):
+            action = int(a[i])
+            state[action].append(x[i])
+            target[action].append(y[i][action])
+        #print["s", state[0]]    
+        #print["t",target[0]]
+        for act in range (ACTION_CNT):
+            if(state[act] != []):   
+                self.model[act].partial_fit(state[act], target[act])
+        
         
     def predict(self, s, target=False):
+        #print(s)
+        batch_size = np.array(s).size/STATE_CNT # sometimes scalars instead of  [a b] arrays
+        pred = np.zeros((batch_size,ACTION_CNT))
+        # s[0] ist das 0te state-tupel, und pred[0] das 0te tupel von predictions
+        # bei m.predict(s)[0]  braucht man die [0] um das Ergebnis, dass ein array ist in ein skalar umzuwandeln
+        
         if target:
             
-            return np.array([m.predict(s)[0] for m in self.model_])
+            for i in range (batch_size):
+                pred[i] = [m.predict(s[i].reshape(1,-1))[0] for m in self.model_]
         else:
-            print(s)
-            #return self.model.predict(s)
-            return np.array([m.predict(s)[0] for m in self.model])
+            
+            for i in range (batch_size):
+                pred[i] = [m.predict(s[i].reshape(1,-1))[0] for m in self.model]
 
+        return pred
 
     def updateTargetModel(self):
-        self.model_.set_weights(self.model.get_weights())
+        #self.model_.set_weights(self.model.get_weights())
+        a = copy.copy(self.model)
+        self.model_ = a
 
 
 #-------------------- MEMORY --------------------------
@@ -132,12 +165,12 @@ class Agent:
         if random.random() < self.epsilon:
             return random.randint(0, ACTION_CNT-1)
         else:
-            return np.argmax(self.brain.predict(s))
+            return np.argmax(self.brain.predict([s]))
 
     def observe(self, sample):  # in (s, a, r, s_) format
         
-        x, y, z, errors = self._getTargets([(0, sample)])
-        self.memory.add(errors[0], sample)
+        error = self._get_sample_Target(sample)
+        self.memory.add(error, sample)
 
         if self.steps % UPDATE_TARGET_FREQUENCY == 0:
             self.brain.updateTargetModel()
@@ -146,14 +179,26 @@ class Agent:
         self.steps += 1
         self.epsilon = MIN_EPSILON + (MAX_EPSILON - MIN_EPSILON) * math.exp(-LAMBDA * self.steps)
 
+    def _get_sample_Target(self, sample): 
+        # sample in (s, a, r, s_) format
+        p = agent.brain.predict(sample[0].reshape(1, -1), target=False)[0]
+        p_ = agent.brain.predict(sample[3].reshape(1, -1), target=False)[0]
+        pTarget_ = agent.brain.predict(sample[3].reshape(1, -1), target=True)[0]
+        oldVal = p[sample[1]]
+        if sample[3] is None:
+                target = sample[2]  # target = reward
+        else:
+            target = sample[2] + GAMMA * pTarget_ [ np.argmax(p_) ]  # double DQN (Bellmann Equation)
+        error = abs(oldVal - target)
+        return error
+        
     def _getTargets(self, batch): # Computes (Input, Output, Error) tuples -->Q-Learning happens here
         no_state = np.zeros(STATE_CNT)
 
         states = np.array([ o[1][0] for o in batch ]) # stores all states
         states_ = np.array([ (no_state if o[1][3] is None else o[1][3]) for o in batch ]) # stores only final states
         
-        p = agent.brain.predict(states)
-
+        p = agent.brain.predict(states, target=False)
         p_ = agent.brain.predict(states_, target=False)
         pTarget_ = agent.brain.predict(states_, target=True)
         
@@ -183,7 +228,6 @@ class Agent:
     def replay(self): # Update Tuples and Errors, than train the CNN   
         batch = self.memory.sample(BATCH_SIZE)
         x, y, a, errors = self._getTargets(batch)
-
         #update errors
         for i in range(len(batch)):
             idx = batch[i][0]
@@ -214,7 +258,7 @@ class RandomAgent: # Takes Random Action
 #-------------------- ENVIRONMENT ---------------------
 class Environment:
 
-    def preprocess_state(self):
+    def preprocess_state_old(self):
         
         state = game.AI_learn_step()
         p = state["playerPos"]
@@ -223,6 +267,43 @@ class Environment:
         features = np.array([x,y])
         #if only_state: return features
         return features, state["reward"],state["done"]
+
+    def preprocess_state(self):
+        
+        state = game.AI_learn_step()
+        p = state["playerPos"]
+        m = copy.copy(state["map"])
+        x = p[0]/52.0
+        y = p[1]/52.0
+        # Compute position vector pv
+        pv_x = np.cos(state["playerRot"])   #cos elementwise ..maybe interesting ?
+        pv_y = np.sqrt(1-pv_x)
+        
+        for i in xrange (m[0].size):  # y coord
+            for j in xrange(m[0].size):  # x coord
+                if(m[i][j]==1):
+                    dy = i - y
+                    dx = j - x
+                    dist = np.sqrt(dx**2+dy**2) 
+                    dx = dx/dist
+                    dy = dy/dist
+                    #scalarproduct
+                    cosa = dx*pv_x+dy*pv_y
+                    
+                    if (dist != 0):res = max(cosa,0)/dist
+                    else: res = 1
+                    m[i][j] = res
+                #print(m[i][j])
+                
+        m = m.reshape(1,-1)[0]
+
+        
+        pos = np.array([x,y])
+        features = np.append(pos,m)
+
+        #if only_state: return features
+        return features, state["reward"],state["done"]
+
 
     def run(self, agent, game, count):                
 
