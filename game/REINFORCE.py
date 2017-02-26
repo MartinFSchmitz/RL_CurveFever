@@ -18,6 +18,19 @@ from keras.models import Sequential
 from keras.layers import *
 from keras.optimizers import *
 
+
+'''
+""" Stochastic Poilcy Gradients """
+
+NOT WORKING YET !!!
+
+
+
+
+
+'''
+
+
 #-------------------- BRAIN ---------------------------
 
 class Policy_Brain:
