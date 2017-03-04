@@ -16,7 +16,7 @@ from sklearn.kernel_approximation import RBFSampler
 import pygame
 from CurveFever import Learn_SinglePlayer
 
-""" klassisches Q-Learning mit Linearer Funktionsannäherung """
+""" klassisches Q-Learning mit Linearer Funktionsannaeherung """
 
 # HYPER-PARAMETERS
 STATE_CNT = (2, 52, 52)  # 2=Map + diffMap, height, width
@@ -92,8 +92,6 @@ class Estimator():
             in the environment where pred[i] is the prediction for action i.
 
         """
-        print("s", s)
-        print("p", self.models[0].predict([s])[0])
         if not a:
             return np.array([m.predict([s])[0] for m in self.models])
         else:
@@ -104,7 +102,6 @@ class Estimator():
         Updates the estimator parameters for a given state and action towards
         the target y.
         """
-        print("a", a, "x", s, "y", y)
         self.models[a].partial_fit([s], [y])
 
 

@@ -3,7 +3,7 @@ Created on Feb 22, 2017
 
 @author: marti
 '''
-import matplotlib
+import matplotlib.pyplot as plt
 import copy
 import random
 import math
@@ -15,13 +15,16 @@ import sklearn.pipeline
 import sklearn.preprocessing
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
+from sklearn.externals import joblib
+from Preprocessor import Preprocessor
 
-""" Q-Learning mit Linearer Funktionsannäherung und den Ideen des DQN"""
+""" Q-Learning mit Linearer Funktionsannaeherung und den Ideen des DQN"""
 
-STATE_CNT = (2706)  # 52x52 = 2704  + 2 wegen pos
+FIELD_SIZE = 34
+STATE_CNT = (2 + (FIELD_SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 100  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 500000  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -36,7 +39,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 5000  # all x games, save the CNN
+SAVE_XTH_GAME = 30000  # all x games, save the CNN
 LEARNING_FRAMES = 10000000
 
 #-------------------- BRAIN ---------------------------
@@ -84,7 +87,6 @@ class Brain:
                 self.model[act].partial_fit(state[act], target[act])
 
     def predict(self, s, target=False):
-        # print(s)
         # sometimes scalars instead of  [a b] arrays
         batch_size = np.array(s).size / STATE_CNT
         pred = np.zeros((batch_size, ACTION_CNT))
@@ -270,66 +272,12 @@ class RandomAgent:  # Takes Random Action
 #-------------------- ENVIRONMENT ---------------------
 class Environment:
 
-    def preprocess_state_old(self):
 
-        # takes only the player position as arguments for the state
-
-        state = game.AI_learn_step()
-        p = state["playerPos"]
-        x = p[0] / 52.0
-        y = p[1] / 52.0
-        features = np.array([x, y])
-        # if only_state: return features
-        return features, state["reward"], state["done"]
-
-    def preprocess_state(self):
-
-        # converts given state into fitting state for the SGD Regressor. Has to be only scalars for the state
-        # takes player position as argument and one scalar for each pixel in the environment. The value of theses pixels is max(0, cos(a)/distance
-        # where distance is the distance from the pixel to the player and a is
-        # the angle between player rotation and vector from position to pixel.
-
-        state = game.AI_learn_step()
-        p = state["playerPos"]
-        m = copy.copy(state["map"])
-        x = p[0] / 52.0
-        y = p[1] / 52.0
-        # Compute position vector pv
-        # cos elementwise ..maybe interesting for more efficiency ?
-        pv_x = np.cos(state["playerRot"])
-        pv_y = np.sqrt(1 - pv_x)
-
-        for i in xrange(m[0].size):  # y coord
-            for j in xrange(m[0].size):  # x coord
-                if(m[i][j] == 1):
-                    dy = i - y
-                    dx = j - x
-                    dist = np.sqrt(dx**2 + dy**2)
-                    dx = dx / dist
-                    dy = dy / dist
-                    # scalarproduct
-                    cosa = dx * pv_x + dy * pv_y
-
-                    if (dist != 0):
-                        res = max(cosa, 0) / dist
-                    else:
-                        res = 1
-                    m[i][j] = res
-                # print(m[i][j])
-
-        m = m.reshape(1, -1)[0]
-
-        pos = np.array([x, y])
-        features = np.append(pos, m)
-
-        # if only_state: return features
-        return features, state["reward"], state["done"]
-
-    def run(self, agent, game, count):
+    def run(self, agent, game, count, pre):
 
         # run one episode of the game, store the states and replay them every
         # step
-        s, r, done = self.preprocess_state()  # 1st frame no action
+        s, r, done = pre.lfa_preprocess_state(game.AI_learn_step())  # 1st frame no action
         R = 0
         k = 4  # step hopper
         counter = 0
@@ -339,18 +287,18 @@ class Environment:
                 a = agent.act(s)  # agent decides an action
                 # converts interval (0,2) to (-1,1)
                 game.player_1.action = a - 1
-                s_, r, done = self.preprocess_state()
+                s_, r, done = pre.lfa_preprocess_state(game.AI_learn_step())
                 agent.observe((s, a, r, s_))  # agent adds the new sample
                 agent.replay()
                 s = s_
             else:
-                s, r, done = self.preprocess_state()
+                s, r, done = pre.lfa_preprocess_state(game.AI_learn_step())
             counter += 1
             R += r
             if done:  # terminal state
                 break
-        print("Total reward:", R)
-        return count + (counter / k)
+        #print("Total reward:", R)
+        return R, count + (counter / k)
 #-------------------- MAIN ----------------------------
 
 env = Environment()
@@ -363,12 +311,15 @@ game.init(game, False)
 
 agent = Agent()
 randomAgent = RandomAgent()
+pre = Preprocessor()
+pre.lfa_constant(STATE_CNT)
+rewards = []
 
 try:
     print("Initialization with random agent...")
     while randomAgent.exp < MEMORY_CAPACITY:
-        env.run(randomAgent, game, 0)
-        print(randomAgent.exp, "/", MEMORY_CAPACITY)
+        env.run(randomAgent, game, 0, pre)
+        #print(randomAgent.exp, "/", MEMORY_CAPACITY)
 
     agent.memory = randomAgent.memory
 
@@ -381,15 +332,27 @@ try:
     while True:
         if frame_count >= LEARNING_FRAMES:
             break
-        frame_count = env.run(agent, game, frame_count)
+        episode_reward, frame_count = env.run(agent, game, frame_count, pre)
+        rewards.append(episode_reward)
         episode_count += 1
-
-        if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN %xtesspiel%savexthgame == 0
-            save_counter = episode_count / SAVE_XTH_GAME
-
-            print("Didnt Save model " + str(save_counter) + " to disk")
-
+        if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the SGDR
+            save_counter = episode_count / SAVE_XTH_GAME     
+            joblib.dump(agent.brain.model, 'data/lfa/model' + str(save_counter) + '.pkl') 
+            print("Saved model " + str(save_counter) + " to disk")
+        #if episode_count == 10: break
+        
 finally:
-
-    print("Didnt Save FINAL model to disk.")
+        # make plot
+    reward_array = np.asarray(rewards)
+    episodes = np.arange(0, reward_array.size, 1)
+    plt.plot(episodes, reward_array )
+    plt.xlabel('Number of episode')
+    plt.ylabel('Reward')
+    plt.title('LFA: Rewards per episode')
+    plt.grid(True)
+    plt.savefig("data/lfa/plot.png")
+    #plt.show()
+    print("made plot...")
+    joblib.dump(agent.brain.model, 'data/lfa/model_end.pkl') 
+    print("Saved FINAL model to disk.")
     print("-----------Finished Process----------")

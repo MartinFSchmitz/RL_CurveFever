@@ -8,7 +8,7 @@ Created on 17.02.2017
 #import os
 #os.environ['THEANO_FLAGS'] = "device=gpu,floatX=float32"
 #---
-import matplotlib.pyplot as plt
+import matplotlib
 import random
 import numpy as np
 import math
@@ -31,11 +31,11 @@ from keras.optimizers import *
 from Preprocessor import Preprocessor
 
 """ Double "Deep Q -Network" with PER """
-SIZE = 34
-STATE_CNT = (2, SIZE + 2, SIZE + 2)  # 2=Map + diffMap, height, width
+
+STATE_CNT = (2, 52, 52)  # 2=Map + diffMap, height, width
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 500000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 2000  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -50,7 +50,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 30000  # all x games, save the CNN
+SAVE_XTH_GAME = 10000  # all x games, save the CNN
 LEARNING_FRAMES = 10000000
 
 #-------------------- BRAIN ---------------------------
@@ -77,7 +77,7 @@ class Brain:
         model.add(Convolution2D(64, 4, 4, subsample=(2, 2), activation='relu'))
         model.add(Convolution2D(64, 3, 3, activation='relu'))
         model.add(Flatten())
-        model.add(Dense(output_dim=512, activation='relu'))
+        model.add(Dense(output_dim=256, activation='relu'))
 
         model.add(Dense(output_dim=ACTION_CNT, activation='linear'))
 
@@ -104,7 +104,7 @@ class Brain:
         # return self.predict(s.reshape(1, (2, 80+2, 80+2)), target).flatten()
         # #8 0 = mapsize
         # 8 0 = mapsize   try like this...
-        return self.predict(s.reshape(1, STATE_CNT[0], STATE_CNT[1], STATE_CNT[2]), target).flatten()
+        return self.predict(s.reshape(1, 2, 50 + 2, 50 + 2), target).flatten()
 
     def updateTargetModel(self):
         self.model_.set_weights(self.model.get_weights())
@@ -147,6 +147,28 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
             s_[1] = np.rot90(s[1], rotate)
             
         return (s,a,r,s_)
+
+    def get_equal_states(self, sample):
+
+        # Gets all 8 equivalent mirrored and rotated states, to the current
+        # state //currently not used anymore
+        samples = []
+        s, a, r, s_ = sample
+        sm = np.fliplr(s)
+        sm_ = np.fliplr(s_)
+        samples.append(sample)
+        samples.append((sm, a, r, sm_))
+        # print("o",samples[0])
+        # print(samples[1])
+        for _ in xrange(3):
+            for i in xrange(STATE_CNT[0]):  # Maps einzeln rotieren
+                s[i] = np.rot90(s[i])
+                s_[i] = np.rot90(s[i])
+                sm[i] = np.rot90(sm[i])
+                sm_[i] = np.rot90(sm_[i])
+            samples.append((s, a, r, s_))
+            samples.append((sm, a, r, sm_))
+        return samples
 
     def add(self, error, sample):
         # ads new Sample to memory
@@ -287,27 +309,33 @@ class RandomAgent:
 class Environment:
 
 
-    def run(self, agent, game, pre):
+    def run(self, agent, game, count, pre):
 
         # run one episode of the game, store the states and replay them every
         # step
         s, r, done = pre.dqn_preprocess_state(game.get_game_state(), STATE_CNT)
         R = 0
+        k = 1  # step hopper
+        counter = 0
         while True:
             # one step of game emulation
-            a = agent.act(s)  # agent decides an action
-            # converts interval (0,2) to (-1,1)
-            game.player_1.action = a - 1
-            s_, r, done = pre.dqn_preprocess_state(game.AI_learn_step(), STATE_CNT)
-            agent.observe((s, a, r, s_))  # agent adds the new sample
-            #[agent.replay() for _ in xrange (8)] #we make 8 steps because we have 8 new states
-            agent.replay()
-            s = s_
+            if (counter % k == 0):
+                a = agent.act(s)  # agent decides an action
+                # converts interval (0,2) to (-1,1)
+                game.player_1.action = a - 1
+                s_, r, done = pre.dqn_preprocess_state(game.AI_learn_step(), STATE_CNT)
+                agent.observe((s, a, r, s_))  # agent adds the new sample
+                #[agent.replay() for _ in xrange (8)] #we make 8 steps because we have 8 new states
+                agent.replay()
+                s = s_
+            else:
+                s, r, done = pre.dqn_preprocess_state(game.AI_learn_step(), STATE_CNT)
+            counter += 1
             R += r
             if done:  # terminal state
                 break
-        #print("Total reward:", R)
-        return R
+        print("Total reward:", R)
+        return count + (counter / k)
 #-------------------- MAIN ----------------------------
 
 env = Environment()
@@ -317,17 +345,15 @@ game = Learn_SinglePlayer()
 game.first_init()
 game.init(game, False)
 
-# init Agents
+
 agent = Agent()
 randomAgent = RandomAgent()
 pre = Preprocessor()
-rewards = []
-
 try:
     print("Initialization with random agent...")
     while randomAgent.exp < MEMORY_CAPACITY:
-        env.run(randomAgent, game, pre)
-        #print(randomAgent.exp, "/", MEMORY_CAPACITY)
+        env.run(randomAgent, game, 0, pre)
+        print(randomAgent.exp, "/", MEMORY_CAPACITY)
 
     agent.memory = randomAgent.memory
 
@@ -340,9 +366,7 @@ try:
     while True:
         if frame_count >= LEARNING_FRAMES:
             break
-        episode_reward = env.run(agent, game, pre)
-        frame_count += episode_reward
-        rewards.append(episode_reward)
+        frame_count = env.run(agent, game, frame_count, pre)
         episode_count += 1
         # serialize model to JSON
         #model_json = agent.brain.model.to_json()
@@ -350,27 +374,13 @@ try:
         # json_file.write(model_json)
         # serialize weights to HDF5
 
-
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
             save_counter = episode_count / SAVE_XTH_GAME
             agent.brain.model.save_weights(
                 "data/dqn/model_" + str(save_counter) + ".h5")
             print("Saved model " + str(save_counter) + " to disk")
-        #if episode_count == 10: break
 
 finally:
-    # make plot
-    reward_array = np.asarray(rewards)
-    episodes = np.arange(0, reward_array.size, 1)
-    plt.plot(episodes, reward_array )
-    plt.xlabel('Number of episode')
-    plt.ylabel('Reward')
-    plt.title('DQN: Rewards per episode')
-    plt.grid(True)
-    plt.savefig("data/test.png")
-    plt.show()
-    print("made plot...")
-
             # serialize model to JSON
     model_json = agent.brain.model.to_json()
     with open("data/model.json", "w") as json_file:

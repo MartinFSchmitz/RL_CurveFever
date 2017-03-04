@@ -8,7 +8,7 @@ import pygame
 import math
 import random
 from cmath import sqrt
-import numpy
+import numpy as np
 import cPickle as pickle
 
 from keras.models import Sequential
@@ -16,6 +16,7 @@ from keras.layers import *
 from keras.optimizers import *
 from keras.models import load_model
 from keras.models import model_from_json
+from sklearn.externals import joblib
 
 import sklearn.pipeline
 import sklearn.preprocessing
@@ -23,6 +24,7 @@ from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 
 import Greedy
+from Preprocessor import Preprocessor
 
 
 class Player(object):
@@ -89,6 +91,7 @@ class Player(object):
                 pygame.Surface.set_at(
                     screen, (x * self.screenScale + i, y * self.screenScale + j), self.color)
 
+
     def handle_input(self, event):
         pass
 
@@ -148,28 +151,25 @@ class GreedyPlayer(Player):
 class QLFAPlayer(Player):
 
     def init_algorithm(self):
-        self.models = pickle.load(open('data/lfa.p', 'rb'))
-        # not finished yet
-
-    def do_action(self, map):
-        state = (self.x, self.y, self.rotation)
-        features = self.featurize_state(state)
-        np.array([m.predict([features])[0] for m in self.models])
-        self.action = 0
+        self.prepro = Preprocessor()
+        self.models = joblib.load('data/lfa/model_end.pkl') 
+        self.prepro.lfa_constant(self.mapSize[0])
+        
+    def do_action(self, game_state):    
+        state, _, _ = self.prepro.lfa_preprocess_state(game_state)
+        np.array([m.predict([state])[0] for m in self.models])
+        self.action = np.argmax(state)
 
 
 class DQNPlayer(Player):
 
-    def hubert_loss(self, y_true, y_pred):    # sqrt(1+a^2)-1
-        # Its like MSE in intervall (-1,1) and after this linear Error
-        err = y_pred - y_true
-        return K.mean(K.sqrt(1 + K.square(err)) - 1, axis=-1)
 
     def init_algorithm(self):
         # returns a compiled model
         # identical to the previous one
         # RMSprob is a popular adaptive learning rate method
         opt = RMSprop(lr=0.00025)
+        self.prepro =Preprocessor()
         #self.dqn=load_model('save_1.h5', custom_objects={'hubert_loss': hubert_loss,'opt': opt })
         self.stateCnt = (2, self.mapSize[0] + 2, self.mapSize[1] + 2)
 
@@ -179,18 +179,17 @@ class DQNPlayer(Player):
         json_file.close()
         self.dqn = model_from_json(loaded_model_json)
         # load weights into new model
-        self.dqn.load_weights("data/dqn/model_50.h5")
-        self.dqn.compile(loss=self.hubert_loss, optimizer=opt)
+        self.dqn.load_weights("data/dqn/model_end.h5")
+        self.dqn.compile(loss=self.prepro.hubert_loss, optimizer=opt)
 
         print("Loaded model from disk")
 
-    def do_action(self, map):
-        diffMap = numpy.zeros(shape=(52, 52))
-        coords = (int(self.x), int(self.y))
-        diffMap[coords] = 1
-        s = numpy.array([map, diffMap])  # take map and difference map as state
-        s = s.reshape(1, 2, self.mapSize[0] + 2, self.mapSize[1] + 2)
-        action = numpy.argmax(self.dqn.predict(s))  # argmax(Q(s,a))
+    def do_action(self, state):
+        s,_,_= self.prepro.dqn_preprocess_state(state,self.stateCnt)
+        s = s.reshape(1,2, self.mapSize[0] + 2, self.mapSize[1] + 2)
+        print("s",s)
+        qvs = self.dqn.predict(s)
+        action = np.argmax(qvs.flatten())  # argmax(Q(s,a))
 
         # action Label is in interval (0,2), but actual action is in interval
         # (-1,1)

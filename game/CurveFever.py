@@ -13,15 +13,14 @@ COLOR_ONE = (255, 0, 0)
 COLOR_TWO = (0, 255, 0)
 COLOR_THREE = (0, 0, 255)
 BG_COLOR = (0, 0, 0)
-MAP_SIZE = (50, 50)
+SIZE = 34
+MAP_SIZE = (SIZE, SIZE) # 34 is minimal size (otherwise cnn causes error)
 SCREEN_SCALE = 10
 
 
 class Main(object):
-
-    def AI_learn_step(self):
-        # Method for the Agents to run while learning
-        self.step(False)
+    
+    def get_game_state(self):
         state = {
             "map": self.Map.map,
             "playerPos": (int(self.player_1.x), int(self.player_1.y)),
@@ -30,6 +29,12 @@ class Main(object):
             "done": self.done
         }
         return state
+        
+        
+    def AI_learn_step(self):
+        # Method for the Agents to run while learning
+        self.step(False)
+        return self.get_game_state()
 
     def close_program(self):
         pygame.quit()
@@ -89,9 +94,9 @@ class Main(object):
         # Update players
         if (self.pause == False):
 
-            self.player_1.do_action(self.Map.map)
+            self.player_1.do_action(self.get_game_state())
             if(multi):
-                self.player_2.do_action(self.Map.map)
+                self.player_2.do_action(self.get_game_state())
             self.player_1.update()
             if(multi):
                 self.player_2.update()
@@ -151,8 +156,8 @@ class SinglePlayer (Main):
 
         #self.player_1 = HumanPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
-        #self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
-        self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
+        #self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         #Player_1 = AI_Loader.LFA_Player(MAP_SIZE,color_one,SCREEN_SCALE)
         self.multi = False
 
