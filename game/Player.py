@@ -179,7 +179,7 @@ class DQNPlayer(Player):
         json_file.close()
         self.dqn = model_from_json(loaded_model_json)
         # load weights into new model
-        self.dqn.load_weights("data/dqn/model_end.h5")
+        self.dqn.load_weights("data/dqn/model_3.h5")
         self.dqn.compile(loss=self.prepro.hubert_loss, optimizer=opt)
 
         print("Loaded model from disk")
@@ -187,8 +187,8 @@ class DQNPlayer(Player):
     def do_action(self, state):
         s,_,_= self.prepro.dqn_preprocess_state(state,self.stateCnt)
         s = s.reshape(1,2, self.mapSize[0] + 2, self.mapSize[1] + 2)
-        print("s",s)
         qvs = self.dqn.predict(s)
+        print(qvs)
         action = np.argmax(qvs.flatten())  # argmax(Q(s,a))
 
         # action Label is in interval (0,2), but actual action is in interval

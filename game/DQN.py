@@ -35,7 +35,7 @@ SIZE = 34
 STATE_CNT = (2, SIZE + 2, SIZE + 2)  # 2=Map + diffMap, height, width
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 500000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 500  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -190,7 +190,7 @@ class Agent:
         self.memory = Memory(MEMORY_CAPACITY)
 
     def act(self, s):
-         # act with epsilon-greedy policy
+        # act with epsilon-greedy policy
         if random.random() < self.epsilon:
             return random.randint(0, ACTION_CNT - 1)
         else:
@@ -250,7 +250,7 @@ class Agent:
         return (x, y, errors)
 
     def replay(self):
-         # Update Tuples and Errors, than train the CNN
+        # Update Tuples and Errors, than train the CNN
         batch = self.memory.sample(BATCH_SIZE)
         x, y, errors = self._getTargets(batch)
 
@@ -367,7 +367,7 @@ finally:
     plt.ylabel('Reward')
     plt.title('DQN: Rewards per episode')
     plt.grid(True)
-    plt.savefig("data/test.png")
+    plt.savefig("data/dqn/dqn_plot.png")
     plt.show()
     print("made plot...")
 

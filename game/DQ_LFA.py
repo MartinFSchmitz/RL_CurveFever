@@ -350,7 +350,7 @@ finally:
     plt.ylabel('Reward')
     plt.title('LFA: Rewards per episode')
     plt.grid(True)
-    plt.savefig("data/lfa/plot.png")
+    plt.savefig("data/lfa/lfa_plot.png")
     #plt.show()
     print("made plot...")
     joblib.dump(agent.brain.model, 'data/lfa/model_end.pkl') 
