@@ -159,8 +159,9 @@ class QLFAPlayer(Player):
         print(a)
         self.rotate = np.argmax(a) - 1
 
-class DQNPlayer(Player):
 
+class CNNPlayer(Player):
+    
     def init_algorithm(self):
         # returns a compiled model
         # identical to the previous one
@@ -174,20 +175,32 @@ class DQNPlayer(Player):
         json_file = open("data/model.json", 'r')
         loaded_model_json = json_file.read()
         json_file.close()
-        self.dqn = model_from_json(loaded_model_json)
+        self.cnn = model_from_json(loaded_model_json)
         # load weights into new model
-        self.dqn.load_weights("data/dqn/model_1.h5")
-        self.dqn.compile(loss=self.prepro.hubert_loss, optimizer=opt)
-
+        self.load_cnn()
+        self.cnn.compile(loss=self.prepro.hubert_loss, optimizer=opt)
         print("Loaded model from disk")
-
+        
     def do_action(self, state):
         s,_,_= self.prepro.cnn_preprocess_state(state,self.stateCnt)
         s = s.reshape(1,2, self.mapSize[0] + 2, self.mapSize[1] + 2)
-        qvs = self.dqn.predict(s)
-        print(qvs)
-        action = np.argmax(qvs.flatten())  # argmax(Q(s,a))
-
+        values = self.cnn.predict(s).flatten()
+        print(values)
+        action = self.choose_action(values)
+        
         # action Label is in interval (0,2), but actual action is in interval
         # (-1,1)
         self.rotate = action - 1
+class DQNPlayer(CNNPlayer):
+    
+    def load_cnn(self):
+        self.dqn.load_weights("data/dqn/model_1.h5")      
+    def choose_action(self, values):
+        return np.argmax(values.flatten())  # argmax(Q(s,a))
+class REINFORCEPlayer(CNNPlayer):
+    
+    def load_cnn(self):
+        self.cnn.load_weights("data/reinforce/model_1.h5")      
+    def choose_action(self, action_probs):
+        return np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
+        
