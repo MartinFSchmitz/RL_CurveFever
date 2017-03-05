@@ -52,8 +52,6 @@ class Player(object):
         self.rotate = 0
         self.rotSpeed = 8
         self.alive = True
-        #self.path = [(self.x,self.y)]
-        self.action = 0
         self.mapSize = mapSize
         self.init_algorithm()
 
@@ -152,17 +150,16 @@ class QLFAPlayer(Player):
 
     def init_algorithm(self):
         self.prepro = Preprocessor()
-        self.models = joblib.load('data/lfa/model_end.pkl') 
+        self.models = joblib.load('data/lfa/model_1.pkl') 
         self.prepro.lfa_constant(self.mapSize[0])
         
     def do_action(self, game_state):    
         state, _, _ = self.prepro.lfa_preprocess_state(game_state)
-        np.array([m.predict([state])[0] for m in self.models])
-        self.action = np.argmax(state)
-
+        a = np.array([m.predict([state])[0] for m in self.models])
+        print(a)
+        self.rotate = np.argmax(a) - 1
 
 class DQNPlayer(Player):
-
 
     def init_algorithm(self):
         # returns a compiled model
@@ -179,13 +176,13 @@ class DQNPlayer(Player):
         json_file.close()
         self.dqn = model_from_json(loaded_model_json)
         # load weights into new model
-        self.dqn.load_weights("data/dqn/model_3.h5")
+        self.dqn.load_weights("data/dqn/model_1.h5")
         self.dqn.compile(loss=self.prepro.hubert_loss, optimizer=opt)
 
         print("Loaded model from disk")
 
     def do_action(self, state):
-        s,_,_= self.prepro.dqn_preprocess_state(state,self.stateCnt)
+        s,_,_= self.prepro.cnn_preprocess_state(state,self.stateCnt)
         s = s.reshape(1,2, self.mapSize[0] + 2, self.mapSize[1] + 2)
         qvs = self.dqn.predict(s)
         print(qvs)

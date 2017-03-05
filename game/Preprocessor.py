@@ -17,7 +17,7 @@ class Preprocessor:
         err = y_pred - y_true
         return K.mean(K.sqrt(1 + K.square(err)) - 1, axis=-1)
 
-    def dqn_preprocess_state(self, state, state_cnt):
+    def cnn_preprocess_state(self, state, state_cnt):
         # converts given state into fitting state for CNN with only matrices
         # creates a diffMap with only zeros except a 1 in the player position
         # doesnt use the rotation

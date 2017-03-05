@@ -24,7 +24,7 @@ FIELD_SIZE = 34
 STATE_CNT = (2 + (FIELD_SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 500000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 500  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -39,7 +39,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 30000  # all x games, save the CNN
+SAVE_XTH_GAME = 100  # all x games, save the CNN
 LEARNING_FRAMES = 10000000
 
 #-------------------- BRAIN ---------------------------
@@ -297,7 +297,7 @@ class Environment:
             R += r
             if done:  # terminal state
                 break
-        #print("Total reward:", R)
+        print("Total reward:", R)
         return R, count + (counter / k)
 #-------------------- MAIN ----------------------------
 
@@ -337,7 +337,7 @@ try:
         episode_count += 1
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the SGDR
             save_counter = episode_count / SAVE_XTH_GAME     
-            joblib.dump(agent.brain.model, 'data/lfa/model' + str(save_counter) + '.pkl') 
+            joblib.dump(agent.brain.model, 'data/lfa/model_' + str(save_counter) + '.pkl') 
             print("Saved model " + str(save_counter) + " to disk")
         #if episode_count == 10: break
         

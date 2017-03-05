@@ -137,7 +137,7 @@ class Environment:
              
         # Reset the environment and pick the first action
         game.init(game, False)
-        state, reward, done = pre.dqn_preprocess_state(game.AI_learn_step(), stateCnt)
+        state, reward, done = pre.cnn_preprocess_state(game.AI_learn_step(), stateCnt)
         #state 
         episode = []
         all_rewards = 0
@@ -148,7 +148,7 @@ class Environment:
             # Take a step
             action_prob,action = agent.act(state)
             game.player_1.action = action - 1
-            next_state, reward, done = pre.dqn_preprocess_state(game.AI_learn_step(), stateCnt)
+            next_state, reward, done = pre.cnn_preprocess_state(game.AI_learn_step(), stateCnt)
                         
             # Keep track of the transition
             episode.append(Transition(

@@ -50,7 +50,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 30000  # all x games, save the CNN
+SAVE_XTH_GAME = 100  # all x games, save the CNN
 LEARNING_FRAMES = 10000000
 
 #-------------------- BRAIN ---------------------------
@@ -291,14 +291,14 @@ class Environment:
 
         # run one episode of the game, store the states and replay them every
         # step
-        s, r, done = pre.dqn_preprocess_state(game.get_game_state(), STATE_CNT)
+        s, r, done = pre.cnn_preprocess_state(game.get_game_state(), STATE_CNT)
         R = 0
         while True:
             # one step of game emulation
             a = agent.act(s)  # agent decides an action
             # converts interval (0,2) to (-1,1)
             game.player_1.action = a - 1
-            s_, r, done = pre.dqn_preprocess_state(game.AI_learn_step(), STATE_CNT)
+            s_, r, done = pre.cnn_preprocess_state(game.AI_learn_step(), STATE_CNT)
             agent.observe((s, a, r, s_))  # agent adds the new sample
             #[agent.replay() for _ in xrange (8)] #we make 8 steps because we have 8 new states
             agent.replay()
@@ -306,7 +306,7 @@ class Environment:
             R += r
             if done:  # terminal state
                 break
-        #print("Total reward:", R)
+        print("Total reward:", R)
         return R
 #-------------------- MAIN ----------------------------
 
