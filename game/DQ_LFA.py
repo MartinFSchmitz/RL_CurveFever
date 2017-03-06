@@ -24,7 +24,7 @@ FIELD_SIZE = 34
 STATE_CNT = (2 + (FIELD_SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 100  # change to 500 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 200000  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -39,8 +39,8 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 100  # all x games, save the CNN
-LEARNING_FRAMES = 10000000
+SAVE_XTH_GAME = 10000  # all x games, save the CNN
+LEARNING_FRAMES = 1000000
 
 #-------------------- BRAIN ---------------------------
 

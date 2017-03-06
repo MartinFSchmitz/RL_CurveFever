@@ -50,8 +50,8 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 30000  # all x games, save the CNN
-LEARNING_FRAMES = 10000000
+SAVE_XTH_GAME = 10000  # all x games, save the CNN
+LEARNING_FRAMES = 1000000
 
 #-------------------- BRAIN ---------------------------
 
@@ -375,7 +375,7 @@ finally:
 
             # serialize model to JSON
     model_json = agent.brain.model.to_json()
-    with open("data/model.json", "w") as json_file:
+    with open("data/dqn/model.json", "w") as json_file:
         json_file.write(model_json)
     # serialize weights to HDF5
     agent.brain.model.save_weights("data/dqn/model_end.h5")

@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 '''
 # HYPER PARAMETERS
 GAMMA = 0.99
-LEARNING_FRAMES = 10000000
-SAVE_XTH_GAME = 10
+LEARNING_FRAMES = 1000000
+SAVE_XTH_GAME = 1000
 #------------------------------------------------------------------
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
