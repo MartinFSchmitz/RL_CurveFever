@@ -157,8 +157,8 @@ class SinglePlayer (Main):
         #self.player_1 = HumanPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
         #self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
-        #self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
-        self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        #self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False
 
     def step_score(self):

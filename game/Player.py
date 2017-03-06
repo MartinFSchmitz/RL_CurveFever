@@ -184,9 +184,7 @@ class CNNPlayer(Player):
     def do_action(self, state):
         s,_,_= self.prepro.cnn_preprocess_state(state,self.stateCnt)
         s = s.reshape(1,2, self.mapSize[0] + 2, self.mapSize[1] + 2)
-        values = self.cnn.predict(s).flatten()
-        print(values)
-        action = self.choose_action(values)
+        action = self.choose_action(s)
         
         # action Label is in interval (0,2), but actual action is in interval
         # (-1,1)
@@ -194,13 +192,15 @@ class CNNPlayer(Player):
 class DQNPlayer(CNNPlayer):
     
     def load_cnn(self):
-        self.dqn.load_weights("data/dqn/model_1.h5")      
-    def choose_action(self, values):
+        self.cnn.load_weights("data/dqn/model_end.h5")      
+    def choose_action(self, s):
+        values = self.cnn.predict(s).flatten()
         return np.argmax(values.flatten())  # argmax(Q(s,a))
 class REINFORCEPlayer(CNNPlayer):
     
     def load_cnn(self):
         self.cnn.load_weights("data/reinforce/model_1.h5")      
-    def choose_action(self, action_probs):
+    def choose_action(self, s):
+        action_probs = self.cnn.predict_proba(s).flatten()
         return np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
         

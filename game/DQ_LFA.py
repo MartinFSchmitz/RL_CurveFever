@@ -24,7 +24,7 @@ FIELD_SIZE = 34
 STATE_CNT = (2 + (FIELD_SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 500  # change to 500 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 100  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -185,15 +185,16 @@ class Agent:
     def _get_sample_Target(self, sample):
         # sample in (s, a, r, s_) format
         p = agent.brain.predict(sample[0].reshape(1, -1), target=False)[0]
-        p_ = agent.brain.predict(sample[3].reshape(1, -1), target=False)[0]
-        pTarget_ = agent.brain.predict(
-            sample[3].reshape(1, -1), target=True)[0]
         oldVal = p[sample[1]]
+
         if sample[3] is None:
             target = sample[2]  # target = reward
         else:
+            p_ = agent.brain.predict(sample[3].reshape(1, -1), target=False)[0]
+            pTarget_ = agent.brain.predict(sample[3].reshape(1, -1), target=True)[0]
             # double DQN (Bellmann Equation)
             target = sample[2] + GAMMA * pTarget_[np.argmax(p_)]
+
         error = abs(oldVal - target)
         return error
 
@@ -237,7 +238,7 @@ class Agent:
         return (x, y, z, errors)
 
     def replay(self):
-         # Update Tuples and Errors, than train the SGD Regressor
+        # Update Tuples and Errors, than train the SGD Regressor
         batch = self.memory.sample(BATCH_SIZE)
         x, y, a, errors = self._getTargets(batch)
         # update errors
@@ -288,6 +289,8 @@ class Environment:
                 # converts interval (0,2) to (-1,1)
                 game.player_1.action = a - 1
                 s_, r, done = pre.lfa_preprocess_state(game.AI_learn_step())
+                if done: # terminal state
+                    s_ = None
                 agent.observe((s, a, r, s_))  # agent adds the new sample
                 agent.replay()
                 s = s_

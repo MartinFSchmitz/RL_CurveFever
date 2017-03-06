@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 # HYPER PARAMETERS
 GAMMA = 0.99
 LEARNING_FRAMES = 10000000
-SAVE_XTH_GAME = 100
+SAVE_XTH_GAME = 10
 #------------------------------------------------------------------
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
@@ -75,6 +75,7 @@ class Policy_Brain(Brain):
         #harsh grid
         action_array = [0,0,0]
         action_array[action]=target  # *action_prob evtl
+        #  = -np.log(action_prob) * target 
         action_array =np.array([action_array])
         self.model.fit(state.reshape(1 ,2 , 36, 36), action_array, batch_size=1, nb_epoch=epoch, verbose=verbose)
        
@@ -149,7 +150,8 @@ class Environment:
             action_prob,action = agent.act(state)
             game.player_1.action = action - 1
             next_state, reward, done = pre.cnn_preprocess_state(game.AI_learn_step(), stateCnt)
-                        
+            #if done: # terminal state
+            #    next_state = None                        
             # Keep track of the transition
             episode.append(Transition(
               state=state, action=action, action_prob=action_prob, reward=reward, next_state=next_state, done=done))
@@ -204,7 +206,10 @@ try:
             agent.policy_brain.model.save_weights(
                 "data/reinforce/model_" + str(save_counter) + ".h5")
             print("Saved model " + str(save_counter) + " to disk")
-        #if episode_count == 10: break
+                        # serialize model to JSON
+            model_json = agent.policy_brain.model.to_json()
+            with open("data/reinforce/model.json", "w") as json_file:
+                json_file.write(model_json)
         
 finally:        
         # make plot
