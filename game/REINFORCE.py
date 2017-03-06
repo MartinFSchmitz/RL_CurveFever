@@ -200,7 +200,6 @@ try:
         # json_file.write(model_json)
         # serialize weights to HDF5
     
-    
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
             save_counter = episode_count / SAVE_XTH_GAME
             agent.policy_brain.model.save_weights(

@@ -150,7 +150,7 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
 
     def add(self, error, sample):
         # ads new Sample to memory
-        sample = self.get_random_equal_state(sample)
+        if sample[3] is not None: sample = self.get_random_equal_state(sample)
         p = self._getPriority(error)
         self.tree.add(p, sample)
         #[self.tree.add(p, sam) for sam in samples]
@@ -291,21 +291,21 @@ class Environment:
 
         # run one episode of the game, store the states and replay them every
         # step
-        s, r, done = pre.cnn_preprocess_state(game.get_game_state(), STATE_CNT)
+        state, reward, done = pre.cnn_preprocess_state(game.get_game_state(), STATE_CNT)
         R = 0
         while True:
             # one step of game emulation
-            a = agent.act(s)  # agent decides an action
+            action = agent.act(state)  # agent decides an action
             # converts interval (0,2) to (-1,1)
-            game.player_1.action = a - 1
-            s_, r, done = pre.cnn_preprocess_state(game.AI_learn_step(), STATE_CNT)
+            game.player_1.action = action - 1
+            next_state, reward, done = pre.cnn_preprocess_state(game.AI_learn_step(), STATE_CNT)
             if done: # terminal state
-                s_ = None
-            agent.observe((s, a, r, s_))  # agent adds the new sample
+                next_state = None
+            agent.observe((state, action, reward, next_state))  # agent adds the new sample
             #[agent.replay() for _ in xrange (8)] #we make 8 steps because we have 8 new states
             agent.replay()
-            s = s_
-            R += r
+            state = next_state
+            R += reward
             if done:  # terminal state
                 break
         print("Total reward:", R)
@@ -375,7 +375,7 @@ finally:
 
             # serialize model to JSON
     model_json = agent.brain.model.to_json()
-    with open("data/dqn/model.json", "w") as json_file:
+    with open("data/model.json", "w") as json_file:
         json_file.write(model_json)
     # serialize weights to HDF5
     agent.brain.model.save_weights("data/dqn/model_end.h5")
