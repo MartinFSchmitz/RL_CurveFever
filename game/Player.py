@@ -24,7 +24,7 @@ from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 
 import Greedy
-from Preprocessor import Preprocessor
+from Preprocessor import *
 
 
 class Player(object):
@@ -149,9 +149,8 @@ class GreedyPlayer(Player):
 class QLFAPlayer(Player):
 
     def init_algorithm(self):
-        self.prepro = Preprocessor()
-        self.models = joblib.load('data/lfa/model_1.pkl') 
-        self.prepro.lfa_constant(self.mapSize[0])
+        self.prepro = LFAPreprocessor(self.mapSize[0])
+        self.models = joblib.load('data/lfa/model_1.pkl')
         
     def do_action(self, game_state):    
         state, _, _ = self.prepro.lfa_preprocess_state(game_state)
@@ -167,9 +166,9 @@ class CNNPlayer(Player):
         # identical to the previous one
         # RMSprob is a popular adaptive learning rate method
         opt = RMSprop(lr=0.00025)
-        self.prepro =Preprocessor()
         #self.dqn=load_model('save_1.h5', custom_objects={'hubert_loss': hubert_loss,'opt': opt })
         self.stateCnt = (2, self.mapSize[0] + 2, self.mapSize[1] + 2)
+        self.prepro =CNNPreprocessor(self.stateCnt)
 
         # load json and create model
         json_file = open("data/model.json", 'r')
@@ -182,7 +181,7 @@ class CNNPlayer(Player):
         print("Loaded model from disk")
         
     def do_action(self, state):
-        s,_,_= self.prepro.cnn_preprocess_state(state,self.stateCnt)
+        s,_,_= self.prepro.cnn_preprocess_state(state)
         s = s.reshape(1,2, self.mapSize[0] + 2, self.mapSize[1] + 2)
         action = self.choose_action(s)
         

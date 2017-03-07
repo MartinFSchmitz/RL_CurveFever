@@ -29,7 +29,17 @@ class Main(object):
             "done": self.done
         }
         return state
-        
+    def get_game_state_multiplayer(self):
+        state = {
+            "map": self.Map.map,
+            "playerPos": (int(self.player_1.x), int(self.player_1.y)),
+            "playerRot": self.player_1.rotation,
+            "OpponentPos": (int(self.player_1.x), int(self.player_1.y)),
+            "OpponentRot": self.player_1.rotation,
+            "reward": self.step_score(),
+            "done": self.done
+        }
+        return state        
         
     def AI_learn_step(self):
         # Method for the Agents to run while learning
@@ -156,8 +166,8 @@ class SinglePlayer (Main):
 
         #self.player_1 = HumanPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
-        #self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
-        self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
+        #self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         #self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False
 

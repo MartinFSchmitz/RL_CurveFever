@@ -16,12 +16,12 @@ import sklearn.preprocessing
 from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.externals import joblib
-from Preprocessor import Preprocessor
+from Preprocessor import LFAPreprocessor
 
 """ Q-Learning mit Linearer Funktionsannaeherung und den Ideen des DQN"""
 
-FIELD_SIZE = 34
-STATE_CNT = (2 + (FIELD_SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
+SIZE = 34
+STATE_CNT = (2 + (SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
 ACTION_CNT = 3  # left, right, straight
 
 MEMORY_CAPACITY = 200000  # change to 500 000 (1 000 000 in original paper)
@@ -314,8 +314,7 @@ game.init(game, False)
 
 agent = Agent()
 randomAgent = RandomAgent()
-pre = Preprocessor()
-pre.lfa_constant(STATE_CNT)
+pre = LFAPreprocessor(STATE_CNT)
 rewards = []
 
 try:

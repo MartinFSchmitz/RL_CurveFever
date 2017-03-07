@@ -28,14 +28,15 @@ def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
 from keras.models import Sequential
 from keras.layers import *
 from keras.optimizers import *
-from Preprocessor import Preprocessor
+from Preprocessor import CNNPreprocessor
 
 """ Double "Deep Q -Network" with PER """
 SIZE = 34
-STATE_CNT = (2, SIZE + 2, SIZE + 2)  # 2=Map + diffMap, height, width
+DEPTH = 2
+STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 200000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 200  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -291,14 +292,14 @@ class Environment:
 
         # run one episode of the game, store the states and replay them every
         # step
-        state, reward, done = pre.cnn_preprocess_state(game.get_game_state(), STATE_CNT)
+        state, reward, done = pre.cnn_preprocess_state(game.get_game_state())
         R = 0
         while True:
             # one step of game emulation
             action = agent.act(state)  # agent decides an action
             # converts interval (0,2) to (-1,1)
             game.player_1.action = action - 1
-            next_state, reward, done = pre.cnn_preprocess_state(game.AI_learn_step(), STATE_CNT)
+            next_state, reward, done = pre.cnn_preprocess_state(game.AI_learn_step())
             if done: # terminal state
                 next_state = None
             agent.observe((state, action, reward, next_state))  # agent adds the new sample
@@ -322,7 +323,7 @@ game.init(game, False)
 # init Agents
 agent = Agent()
 randomAgent = RandomAgent()
-pre = Preprocessor()
+pre = CNNPreprocessor(STATE_CNT)
 rewards = []
 
 try:
