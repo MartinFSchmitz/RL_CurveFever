@@ -18,6 +18,8 @@ from keras.models import Sequential
 from keras.layers import *
 from keras.optimizers import *
 from Preprocessor import CNNPreprocessor
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 '''

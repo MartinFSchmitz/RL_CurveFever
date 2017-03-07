@@ -150,12 +150,11 @@ class QLFAPlayer(Player):
 
     def init_algorithm(self):
         self.prepro = LFAPreprocessor(self.mapSize[0])
-        self.models = joblib.load('data/lfa/model_1.pkl')
+        self.models = joblib.load('data/lfa/model_16.pkl')
         
     def do_action(self, game_state):    
         state, _, _ = self.prepro.lfa_preprocess_state(game_state)
         a = np.array([m.predict([state])[0] for m in self.models])
-        print(a)
         self.rotate = np.argmax(a) - 1
 
 
@@ -171,7 +170,7 @@ class CNNPlayer(Player):
         self.prepro =CNNPreprocessor(self.stateCnt)
 
         # load json and create model
-        json_file = open("data/model.json", 'r')
+        json_file = open(self.get_model(), 'r')
         loaded_model_json = json_file.read()
         json_file.close()
         self.cnn = model_from_json(loaded_model_json)
@@ -189,16 +188,18 @@ class CNNPlayer(Player):
         # (-1,1)
         self.rotate = action - 1
 class DQNPlayer(CNNPlayer):
-    
+    def get_model(self):
+        return "data/dqn/model.json"
     def load_cnn(self):
-        self.cnn.load_weights("data/dqn/model_end.h5")      
+        self.cnn.load_weights("data/dqn/m.h5")      
     def choose_action(self, s):
         values = self.cnn.predict(s).flatten()
         return np.argmax(values.flatten())  # argmax(Q(s,a))
 class REINFORCEPlayer(CNNPlayer):
-    
+    def get_model(self):
+        return "data/reinforce/model.json"
     def load_cnn(self):
-        self.cnn.load_weights("data/reinforce/model_1.h5")      
+        self.cnn.load_weights("data/reinforce/model_38.h5")      
     def choose_action(self, s):
         action_probs = self.cnn.predict_proba(s).flatten()
         return np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities

@@ -3,6 +3,8 @@ Created on Feb 22, 2017
 
 @author: marti
 '''
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import copy
 import random
@@ -21,10 +23,11 @@ from Preprocessor import LFAPreprocessor
 """ Q-Learning mit Linearer Funktionsannaeherung und den Ideen des DQN"""
 
 SIZE = 34
-STATE_CNT = (2 + (SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
+#STATE_CNT = (2 + (SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
+STATE_CNT = 2
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 200000  # change to 500 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 20000  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -273,12 +276,19 @@ class RandomAgent:  # Takes Random Action
 #-------------------- ENVIRONMENT ---------------------
 class Environment:
 
-
-    def run(self, agent, game, count, pre):
+    def __init__(self):
+        # init Game Environment
+        self.game = Learn_SinglePlayer()
+        self.game.first_init()
+        self.game.init( render = False)
+        
+        
+    def run(self, agent, count, pre):
 
         # run one episode of the game, store the states and replay them every
         # step
-        s, r, done = pre.lfa_preprocess_state(game.AI_learn_step())  # 1st frame no action
+        self.game.init(render = False)
+        s, r, done = pre.lfa_preprocess_state_2(self.game.AI_learn_step())  # 1st frame no action
         R = 0
         k = 4  # step hopper
         counter = 0
@@ -287,15 +297,15 @@ class Environment:
             if (counter % k == 0):
                 a = agent.act(s)  # agent decides an action
                 # converts interval (0,2) to (-1,1)
-                game.player_1.action = a - 1
-                s_, r, done = pre.lfa_preprocess_state(game.AI_learn_step())
+                self.game.player_1.action = a - 1
+                s_, r, done = pre.lfa_preprocess_state_2(self.game.AI_learn_step())
                 if done: # terminal state
                     s_ = None
                 agent.observe((s, a, r, s_))  # agent adds the new sample
                 agent.replay()
                 s = s_
             else:
-                s, r, done = pre.lfa_preprocess_state(game.AI_learn_step())
+                s, r, done = pre.lfa_preprocess_state_2(self.game.AI_learn_step())
             counter += 1
             R += r
             if done:  # terminal state
@@ -306,12 +316,6 @@ class Environment:
 
 env = Environment()
 
-# init Game Environment
-game = Learn_SinglePlayer()
-game.first_init()
-game.init(game, False)
-
-
 agent = Agent()
 randomAgent = RandomAgent()
 pre = LFAPreprocessor(STATE_CNT)
@@ -320,7 +324,7 @@ rewards = []
 try:
     print("Initialization with random agent...")
     while randomAgent.exp < MEMORY_CAPACITY:
-        env.run(randomAgent, game, 0, pre)
+        env.run(randomAgent, 0, pre)
         #print(randomAgent.exp, "/", MEMORY_CAPACITY)
 
     agent.memory = randomAgent.memory
@@ -334,7 +338,7 @@ try:
     while True:
         if frame_count >= LEARNING_FRAMES:
             break
-        episode_reward, frame_count = env.run(agent, game, frame_count, pre)
+        episode_reward, frame_count = env.run(agent,frame_count, pre)
         rewards.append(episode_reward)
         episode_count += 1
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the SGDR

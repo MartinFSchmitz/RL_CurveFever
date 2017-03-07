@@ -34,7 +34,7 @@ from Preprocessor import CNNPreprocessor
 
 """ Double "Deep Q -Network" with PER """
 SIZE = 34
-DEPTH = 2
+DEPTH = 1
 STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
 ACTION_CNT = 3  # left, right, straight
 
@@ -301,14 +301,14 @@ class Environment:
         # run one episode of the game, store the states and replay them every
         # step
         self.game.init(render = False)
-        state, reward, done = pre.cnn_preprocess_state(self.game.get_game_state())
+        state, reward, done = pre.cnn_preprocess_state_2(self.game.get_game_state())
         R = 0
         while True:
             # one step of game emulation
             action = agent.act(state)  # agent decides an action
             # converts interval (0,2) to (-1,1)
             self.game.player_1.action = action - 1
-            next_state, reward, done = pre.cnn_preprocess_state(self.game.AI_learn_step())
+            next_state, reward, done = pre.cnn_preprocess_state_2(self.game.AI_learn_step())
             if done: # terminal state
                 next_state = None
             agent.observe((state, action, reward, next_state))  # agent adds the new sample

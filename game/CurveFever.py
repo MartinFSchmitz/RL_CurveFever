@@ -68,7 +68,7 @@ class Main(object):
         if (self.done):
             if(self.saveScreen > 0):
                 self.save_screen("end")
-            self.init(self, render)
+            if(render): self.init()
 
         # Check if players are alive and update Map
         if (self.pause == False):
@@ -104,9 +104,10 @@ class Main(object):
         # Update players
         if (self.pause == False):
 
-            self.player_1.do_action(self.get_game_state())
-            if(multi):
-                self.player_2.do_action(self.get_game_state())
+            if(render):
+                self.player_1.do_action(self.get_game_state())
+                if(multi):
+                    self.player_2.do_action(self.get_game_state())
             self.player_1.update()
             if(multi):
                 self.player_2.update()
@@ -134,12 +135,12 @@ class Main(object):
 
         self.pause = False
 
-    def init(self, game, render=True):
+    def init(self,render=True):
 
         self.saveScreen = 0
         self.done = False
         self.score = 0
-        game.create_players()
+        self.create_players()
         if render == True:
             self.screen.fill(BG_COLOR)
         self.Map = Map.Map(MAP_SIZE)
@@ -166,9 +167,9 @@ class SinglePlayer (Main):
 
         #self.player_1 = HumanPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
-        self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
+        #self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
         #self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
-        #self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False
 
     def step_score(self):
@@ -197,15 +198,15 @@ class MultiPlayer (Main):
 
 if __name__ == '__main__':
 
-    game = SinglePlayer()
+    self = SinglePlayer()
     pygame.init()
 
-    game.first_init()
-    game.screen = pygame.display.set_mode(game.screenSize)
-    game.clock = pygame.time.Clock()
-    game.init(game)
+    self.first_init()
+    self.screen = pygame.display.set_mode(self.screenSize)
+    self.clock = pygame.time.Clock()
+    self.init()
 
     while True:
-        game.step(multi=game.multi)
+        self.step(multi=self.multi)
         pygame.display.update()
-        game.clock.tick(30)
+        self.clock.tick(30)

@@ -41,6 +41,20 @@ class CNNPreprocessor:
 
         return features, reward, done
     
+    def cnn_preprocess_state_2(self, state, multi_player = False):
+        # converts given state into fitting state for CNN with only matrices
+        # creates a diffMap with only zeros except a 1 in the player position
+        # doesnt use the rotation
+
+        player_map = copy.copy(state["map"])
+        reward = state["reward"]
+        done = state["done"]
+        player_coords = (int(state["playerPos"][0]), int(state["playerPos"][1]))
+        player_map[player_coords] = 10
+        features = np.array([player_map])
+        
+        return features, reward, done
+    
 class LFAPreprocessor:    
     
     def __init__(self, size):
@@ -92,5 +106,11 @@ class LFAPreprocessor:
 
         return features
     
+    def lfa_preprocess_state_2(self ,state, multi_player = False):
+
+        features = np.array(state["playerPos"])
+
+        return features, state["reward"], state["done"]
+
     
     
