@@ -19,6 +19,7 @@ from sklearn.linear_model import SGDRegressor
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.externals import joblib
 from Preprocessor import LFAPreprocessor
+import RL_Algo
 
 """ Q-Learning mit Linearer Funktionsannaeherung und den Ideen des DQN"""
 
@@ -27,7 +28,7 @@ SIZE = 34
 STATE_CNT = 2
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 20000  # change to 500 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 200  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -341,6 +342,7 @@ try:
         episode_reward, frame_count = env.run(agent,frame_count, pre)
         rewards.append(episode_reward)
         episode_count += 1
+        if frame_count > 10: break
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the SGDR
             save_counter = episode_count / SAVE_XTH_GAME     
             joblib.dump(agent.brain.model, 'data/lfa/model_' + str(save_counter) + '.pkl') 
@@ -351,14 +353,7 @@ finally:
         # make plot
     reward_array = np.asarray(rewards)
     episodes = np.arange(0, reward_array.size, 1)
-    plt.plot(episodes, reward_array )
-    plt.xlabel('Number of episode')
-    plt.ylabel('Reward')
-    plt.title('LFA: Rewards per episode')
-    plt.grid(True)
-    plt.savefig("data/lfa/lfa_plot.png")
-    #plt.show()
-    print("made plot...")
+    RL_Algo.make_plot(episodes, reward_array, 'lfa')  
     joblib.dump(agent.brain.model, 'data/lfa/model_end.pkl') 
     print("Saved FINAL model to disk.")
     print("-----------Finished Process----------")

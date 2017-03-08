@@ -11,8 +11,7 @@ from cmath import sqrt
 import numpy as np
 import cPickle as pickle
 
-from keras.models import Sequential
-from keras.layers import *
+
 from keras.optimizers import *
 from keras.models import load_model
 from keras.models import model_from_json
@@ -199,8 +198,8 @@ class REINFORCEPlayer(CNNPlayer):
     def get_model(self):
         return "data/reinforce/model.json"
     def load_cnn(self):
-        self.cnn.load_weights("data/reinforce/model_38.h5")      
+        self.cnn.load_weights("data/reinforce/model_end.h5")      
     def choose_action(self, s):
-        action_probs = self.cnn.predict_proba(s).flatten()
+        action_probs = self.cnn.predict_proba(s,verbose = 0).flatten()
         return np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
         

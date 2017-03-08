@@ -11,16 +11,13 @@ import sys
 import collections
 import pygame
 from CurveFever import Learn_SinglePlayer
-from keras.models import load_model
-from keras.utils.np_utils import binary_logloss
-from keras import optimizers
-from keras.models import Sequential
-from keras.layers import *
-from keras.optimizers import *
+
 from Preprocessor import CNNPreprocessor
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from RL_Algo import Brain
+import RL_Algo
 
 '''
 """ Stochastic Poilcy Gradients """
@@ -37,43 +34,14 @@ STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
 ACTION_CNT = 3 # left, right, straight
  
 
-#------------------------------------------------------------------
-def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
-    err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
-    #self.test = False
-    return K.mean( K.sqrt(1+K.square(err))-1, axis=-1 )
+
 #-------------------- BRAINS ---------------------------
 
-class Brain:
-
-    def _createModel(self, output, act_fun): # Creating a CNN
-        model = Sequential()
-        
-        # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
-        #relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
-    
-        model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(STATE_CNT)))     
-        model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
-        model.add(Convolution2D(64, 3, 3, activation='relu'))
-        model.add(Flatten())
-        model.add(Dense(output_dim=512, activation='relu'))
-    
-        model.add(Dense(output_dim=output, activation=act_fun))
-    
-        opt = RMSprop(lr=0.00025) #RMSprob is a popular adaptive learning rate method 
-        #REINFORCE_loss = -np.log(self.picked_action_prob) * self.target 
-        model.compile(loss=hubert_loss, optimizer=opt)
-        return model
-    
-    def predictOne(self, s):
-        return self.predict(s.reshape(1, 2, 34+2, 34+2)).flatten()
-    
-#------------------------------------------------------------------  
 class Policy_Brain(Brain):      
     
     def __init__(self):
  
-        self.model = self._createModel(ACTION_CNT,'softmax')
+        self.model = self._createModel(STATE_CNT,ACTION_CNT,'softmax')
         
     def train(self, state, target, action, action_prob, epoch=1, verbose=0):
         # x=input, y=target, batch_size = Number of samples per gradient update
@@ -93,7 +61,7 @@ class Policy_Brain(Brain):
 class Value_Brain(Brain):
 
     def __init__(self):
-        self.model = self._createModel(1,'linear')
+        self.model = self._createModel(STATE_CNT,1,'linear')
         
     def train(self, state, target, epoch=1, verbose=0):
         state = state.reshape(1 ,2 , 36, 36)
@@ -129,21 +97,27 @@ class Agent:
             agent.value_brain.train(transition.state, total_return)
             # Calculate baseline/advantage
             baseline_value = agent.value_brain.predictOne(transition.state)   
-            #baseline_value = 0     #temporary    
+            #baseline_value = 0     #temporary
             advantage = total_return - baseline_value
             # Update our policy estimator
-            self.policy_brain.train(transition.state, advantage, transition.action, transition.action_prob) # do this for every transition (why?), but use total return
+            self.policy_brain.train(transition.state, advantage, transition.action, transition.action_prob) # do this for every transition, and use total return
 
 #------------------------------------------------------------------
         
 class Environment:
     
-    def run(self, agent, game, pre):
+    def __init__(self):
+        # init Game Environment
+        self.game = Learn_SinglePlayer()
+        self.game.first_init()
+        self.game.init( render = False)
+        
+    def run(self, agent, pre):
         Transition = collections.namedtuple("Transition", ["state", "action","action_prob", "reward", "next_state", "done"])
              
         # Reset the environment and pick the first action
-        game.init(game, False)
-        state, reward, done = pre.cnn_preprocess_state(game.AI_learn_step())
+        self.game.init(render = False)
+        state, reward, done = pre.cnn_preprocess_state(self.game.AI_learn_step())
         #state 
         episode = []
         all_rewards = 0
@@ -153,8 +127,8 @@ class Environment:
             
             # Take a step
             action_prob,action = agent.act(state)
-            game.player_1.action = action - 1
-            next_state, reward, done = pre.cnn_preprocess_state(game.AI_learn_step())
+            self.game.player_1.action = action - 1
+            next_state, reward, done = pre.cnn_preprocess_state(self.game.AI_learn_step())
             #if done: # terminal state
             #    next_state = None                        
             # Keep track of the transition
@@ -173,10 +147,6 @@ class Environment:
 
 env = Environment()
 
-# init Game Environment
-game = Learn_SinglePlayer()
-game.first_init()
-game.init(game, False)
 
 # init Agents
 agent = Agent()
@@ -191,7 +161,7 @@ try:
     while True:
         if frame_count >= LEARNING_FRAMES:
             break
-        episode_reward = env.run(agent, game, pre)
+        episode_reward = env.run(agent, pre)
         frame_count += episode_reward
         rewards.append(episode_reward)
         episode_count += 1
@@ -200,26 +170,17 @@ try:
         # with open("model.json", "w") as json_file:
         # json_file.write(model_json)
         # serialize weights to HDF5
-    
+        if frame_count >10: break
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
             save_counter = episode_count / SAVE_XTH_GAME
-            agent.policy_brain.model.save_weights(
-                "data/reinforce/model_" + str(save_counter) + ".h5")
-            print("Saved model " + str(save_counter) + " to disk")
-                        # serialize model to JSON
-            model_json = agent.policy_brain.model.to_json()
-            with open("data/reinforce/model.json", "w") as json_file:
-                json_file.write(model_json)
+            RL_Algo.save_model(agent.policy_brain.model, file = 'reinforce', name = str(save_counter))
+
         
 finally:        
         # make plot
     reward_array = np.asarray(rewards)
     episodes = np.arange(0, reward_array.size, 1)
-    plt.plot(episodes, reward_array )
-    plt.xlabel('Number of episode')
-    plt.ylabel('Reward')
-    plt.title('REINFORCE: Rewards per episode')
-    plt.grid(True)
-    plt.savefig("data/reinforce/reinforce_plot.png")
-    plt.show()
-    print("made plot...") 
+    RL_Algo.make_plot(episodes, reward_array, 'reinforce')  
+    
+    RL_Algo.save_model(agent.policy_brain.model, file = 'reinforce', name = 'final')
+    print("-----------Finished Process----------")

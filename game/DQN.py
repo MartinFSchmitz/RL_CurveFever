@@ -8,29 +8,15 @@ Created on 17.02.2017
 #import os
 #os.environ['THEANO_FLAGS'] = "device=gpu,floatX=float32"
 #---
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+
 import random
 import numpy as np
 import math
 from SumTree import SumTree
 import pygame
-from CurveFever import Learn_SinglePlayer
-from keras.models import load_model
-from keras.utils.np_utils import binary_logloss
-from keras import optimizers
-
-
-def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
-    # Its like MSE in intervall (-1,1) and after this linear Error
-    err = y_pred - y_true
-    return K.mean(K.sqrt(1 + K.square(err)) - 1, axis=-1)
-
-from keras.models import Sequential
-from keras.layers import *
-from keras.optimizers import *
 from Preprocessor import CNNPreprocessor
+from RL_Algo import Brain
+import RL_Algo
 
 """ Double "Deep Q -Network" with PER """
 SIZE = 34
@@ -38,7 +24,7 @@ DEPTH = 2
 STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 20000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 200  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -59,36 +45,13 @@ LEARNING_FRAMES = 1000000
 #-------------------- BRAIN ---------------------------
 
 
-class Brain:
+class DQN_Brain(Brain):
 
     def __init__(self):
 
-        self.model = self._createModel()
-        self.model_ = self._createModel()  # target network
+        self.model = self._createModel(STATE_CNT,ACTION_CNT,'linear')
+        self.model_ = self._createModel(STATE_CNT,ACTION_CNT,'linear')  # target network
 
-    def _createModel(self):  # Creating a CNN
-        model = Sequential()
-
-        # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
-        # relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
-        # I divided every parameter to 2, and made the kernel sizes 30%smaller
-        # because the input size is 30% smaller as well
-
-        #model.add(Convolution2D(64, 8, 8, subsample=(4,4), activation='relu', input_shape=(STATE_CNT)))
-        model.add(Convolution2D(32, 8, 8, subsample=(4, 4),
-                                activation='relu', input_shape=(STATE_CNT)))
-        #model.add(Convolution2D(64, 4, 4, subsample=(2, 2), activation='relu'))
-        model.add(Convolution2D(64, 3, 3, activation='relu'))
-        model.add(Flatten())
-        model.add(Dense(output_dim=512, activation='relu'))
-
-        model.add(Dense(output_dim=ACTION_CNT, activation='linear'))
-
-        # RMSprob is a popular adaptive learning rate method
-        opt = RMSprop(lr=0.00025)
-        model.compile(loss=hubert_loss, optimizer=opt)
-
-        return model
 
     def train(self, x, y, epoch=1, verbose=0):
         # x=input, y=target, batch_size = Number of samples per gradient update
@@ -102,12 +65,6 @@ class Brain:
             return self.model_.predict(s)
         else:
             return self.model.predict(s)
-
-    def predictOne(self, s, target=False):
-        # return self.predict(s.reshape(1, (2, 80+2, 80+2)), target).flatten()
-        # #8 0 = mapsize
-        # 8 0 = mapsize   try like this...
-        return self.predict(s.reshape(1, STATE_CNT[0], STATE_CNT[1], STATE_CNT[2]), target).flatten()
 
     def updateTargetModel(self):
         self.model_.set_weights(self.model.get_weights())
@@ -127,34 +84,11 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
     def _getPriority(self, error):
         return (error + self.e) ** self.a
 
-    def get_random_equal_state(self, sample):
-
-        # Gets one random of the 8 equivalent mirrored and rotated states, to
-        # the current state
-        s, a, r, s_ = sample
-        rnd = random.randint(0, 7)
-
-        if (rnd % 2 == 1):
-            s = np.fliplr(s)
-            s_ = np.fliplr(s_)
-
-        rotate = rnd / 2
-        if (rotate < 0):
-            #for i in xrange(STATE_CNT[0]):  # Maps einzeln rotieren
-                #s[i] = np.rot90(s[i], rotate)
-                #s_[i] = np.rot90(s[i], rotate)
-                
-            s[0] = np.rot90(s[0], rotate)
-            s_[0] = np.rot90(s[0], rotate)
-            s[1] = np.rot90(s[1], rotate)
-            s_[1] = np.rot90(s[1], rotate)
-            
-        return (s,a,r,s_)
 
     def add(self, error, sample):
         # ads new Sample to memory
         ############## so far without random thingy ###############
-        #if sample[3] is not None: sample = self.get_random_equal_state(sample)
+        #if sample[3] is not None: sample = RL_Algo.get_random_equal_state(sample)
         p = self._getPriority(error)
         self.tree.add(p, sample)
         #[self.tree.add(p, sam) for sam in samples]
@@ -190,7 +124,7 @@ class Agent:
 
     def __init__(self):
 
-        self.brain = Brain()
+        self.brain = DQN_Brain()
         #self.memory = Memory(MEMORY_CAPACITY)
 
     def act(self, s):
@@ -290,11 +224,7 @@ class RandomAgent:
 class Environment:
     
     def __init__(self):
-        # init Game Environment
-        self.game = Learn_SinglePlayer()
-        self.game.first_init()
-        self.game.init( render = False)
-
+        self.game = RL_Algo.init_game()
 
     def run(self, agent, pre):
 
@@ -324,9 +254,6 @@ class Environment:
 #-------------------- MAIN ----------------------------
 
 env = Environment()
-
-
-# init Agents
 agent = Agent()
 randomAgent = RandomAgent()
 pre = CNNPreprocessor(STATE_CNT)
@@ -353,38 +280,17 @@ try:
         frame_count += episode_reward
         rewards.append(episode_reward)
         episode_count += 1
-        # serialize model to JSON
-        #model_json = agent.brain.model.to_json()
-        # with open("model.json", "w") as json_file:
-        # json_file.write(model_json)
-        # serialize weights to HDF5
-
 
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
             save_counter = episode_count / SAVE_XTH_GAME
-            agent.brain.model.save_weights(
-                "data/dqn/model_" + str(save_counter) + ".h5")
-            print("Saved model " + str(save_counter) + " to disk")
-        #if episode_count == 10: break
+            RL_Algo.save_model(agent.brain.model, file = 'dqn', name = str(save_counter))
+        if episode_count == 10: break
 
 finally:
     # make plot
     reward_array = np.asarray(rewards)
     episodes = np.arange(0, reward_array.size, 1)
-    plt.plot(episodes, reward_array )
-    plt.xlabel('Number of episode')
-    plt.ylabel('Reward')
-    plt.title('DQN: Rewards per episode')
-    plt.grid(True)
-    plt.savefig("data/dqn/dqn_plot.png")
-    plt.show()
-    print("made plot...")
-
-            # serialize model to JSON
-    model_json = agent.brain.model.to_json()
-    with open("data/dqn/model.json", "w") as json_file:
-        json_file.write(model_json)
-    # serialize weights to HDF5
-    agent.brain.model.save_weights("data/dqn/model_end.h5")
-    print("Saved FINAL model to disk.")
+    
+    RL_Algo.make_plot(episodes, reward_array, 'dqn')  
+    RL_Algo.save_model(agent.brain.model, file = 'dqn', name = 'final')
     print("-----------Finished Process----------")

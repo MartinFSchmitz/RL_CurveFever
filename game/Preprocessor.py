@@ -19,6 +19,7 @@ class CNNPreprocessor:
     
     def __init__(self,state_cnt):
         self.zero_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
+        #self.spur_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
     
     def cnn_preprocess_state(self, state, multi_player = False):
         # converts given state into fitting state for CNN with only matrices
@@ -31,6 +32,7 @@ class CNNPreprocessor:
         player_map = self.zero_map
         player_coords = (int(state["playerPos"][0]), int(state["playerPos"][1]))
         player_map[player_coords] = 1
+        #self.spur_map[player_coords] = 1
         if multi_player:
             print(multi_player)
             opponent_map = self.zero_map
