@@ -18,8 +18,9 @@ class CNNPreprocessor:
         return K.mean(K.sqrt(1 + K.square(err)) - 1, axis=-1)
     
     def __init__(self,state_cnt):
-        self.zero_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
+        #self.zero_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
         #self.spur_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
+        self.state_cnt = state_cnt
     
     def cnn_preprocess_state(self, state, multi_player = False):
         # converts given state into fitting state for CNN with only matrices
@@ -29,7 +30,7 @@ class CNNPreprocessor:
         map = state["map"]
         reward = state["reward"]
         done = state["done"]
-        player_map = self.zero_map
+        player_map = np.zeros(shape=(self.state_cnt[1], self.state_cnt[2]))
         player_coords = (int(state["playerPos"][0]), int(state["playerPos"][1]))
         player_map[player_coords] = 1
         #self.spur_map[player_coords] = 1

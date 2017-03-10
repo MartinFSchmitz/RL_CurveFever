@@ -19,10 +19,10 @@ from RL_Algo import Brain
 import RL_Algo
 
 """ Double "Deep Q -Network" with PER """
-SIZE = 34
+SIZE = 20
 DEPTH = 2
 STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
-ACTION_CNT = 3  # left, right, straight
+ACTION_CNT = 2  # left, right, straight
 
 MEMORY_CAPACITY = 200  # change to 200 000 (1 000 000 in original paper)
 
@@ -39,8 +39,8 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 10000  # all x games, save the CNN
-LEARNING_FRAMES = 1000000
+SAVE_XTH_GAME = 1000 # all x games, save the CNN
+LEARNING_FRAMES = 1000000 # 50mio
 
 #-------------------- BRAIN ---------------------------
 
@@ -62,6 +62,7 @@ class DQN_Brain(Brain):
 
     def predict(self, s, target=False):
         if target:
+            
             return self.model_.predict(s)
         else:
             return self.model.predict(s)
@@ -154,7 +155,7 @@ class Agent:
         states = np.array([o[1][0] for o in batch])  # stores all states
         states_ = np.array([(no_state if o[1][3] is None else o[1][3])
                                for o in batch])  # stores only final states
-
+        
         p = agent.brain.predict(states)
 
         p_ = agent.brain.predict(states_, target=False)
@@ -179,7 +180,6 @@ class Agent:
             else:
                 # double DQN (Bellmann Equation)
                 t[a] = r + GAMMA * pTarget_[i][np.argmax(p_[i])]
-
             x[i] = s
             y[i] = t
             errors[i] = abs(oldVal - t[a])
@@ -225,28 +225,29 @@ class Environment:
     
     def __init__(self):
         self.game = RL_Algo.init_game()
-
-    def run(self, agent, pre):
+        self.pre = CNNPreprocessor(STATE_CNT)
+    def run(self, agent):
 
         # run one episode of the game, store the states and replay them every
         # step
         self.game.init(render = False)
-        state, reward, done = pre.cnn_preprocess_state(self.game.get_game_state())
+        state, reward, done = self.pre.cnn_preprocess_state(self.game.get_game_state())
         R = 0
         while True:
             # one step of game emulation
             action = agent.act(state)  # agent decides an action
             # converts interval (0,2) to (-1,1)
             self.game.player_1.action = action - 1
-            next_state, reward, done = pre.cnn_preprocess_state(self.game.AI_learn_step())
+            next_state, reward, done = self.pre.cnn_preprocess_state(self.game.AI_learn_step())
             if done: # terminal state
+                reward = 0
                 next_state = None
             agent.observe((state, action, reward, next_state))  # agent adds the new sample
             #[agent.replay() for _ in xrange (8)] #we make 8 steps because we have 8 new states
             agent.replay()
             state = next_state
             R += reward
-            
+            #print("frame:", "reward:" , reward, "action:" , self.game.player_1.action, "done" , done  )
             if done:  # terminal state
                 break
         print("Total reward:", R)
@@ -256,13 +257,12 @@ class Environment:
 env = Environment()
 agent = Agent()
 randomAgent = RandomAgent()
-pre = CNNPreprocessor(STATE_CNT)
 rewards = []
 
 try:
     print("Initialization with random agent...")
     while randomAgent.exp < MEMORY_CAPACITY:
-        env.run(randomAgent, pre)
+        env.run(randomAgent)
         #print(randomAgent.exp, "/", MEMORY_CAPACITY)
 
     agent.memory = randomAgent.memory
@@ -276,15 +276,17 @@ try:
     while True:
         if frame_count >= LEARNING_FRAMES:
             break
-        episode_reward = env.run(agent, pre)
+        episode_reward = env.run(agent)
         frame_count += episode_reward
         rewards.append(episode_reward)
         episode_count += 1
 
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
             save_counter = episode_count / SAVE_XTH_GAME
+            reward_array = np.asarray(rewards)
+            episodes = np.arange(0, reward_array.size, 1)
+            RL_Algo.make_plot(episodes, reward_array, 'dqn')  
             RL_Algo.save_model(agent.brain.model, file = 'dqn', name = str(save_counter))
-        if episode_count == 10: break
 
 finally:
     # make plot

@@ -1,21 +1,12 @@
-# OpenGym Seaquest-v0
-# -------------------
-#
-# This code demonstrates a Double DQN network with Priority Experience Replay
-# in an OpenGym Seaquest-v0 environment.
-#
-# Made as part of blog series Let's make a DQN, available at: 
-# https://jaromiru.com/2016/11/07/lets-make-a-dqn-double-learning-and-prioritized-experience-replay/
-# 
-# author: Jaromir Janisch, 2016
+
 
 from Preprocessor import CNNPreprocessor
 import random, numpy, math
 from SumTree import SumTree
 from CurveFever import Learn_SinglePlayer
 
-IMAGE_WIDTH = 36
-IMAGE_HEIGHT = 36
+IMAGE_WIDTH = 22
+IMAGE_HEIGHT = 22
 IMAGE_STACK = 2
 
 #-------------------- UTILITIES -----------------------
@@ -149,7 +140,7 @@ class Agent:
 
         states = numpy.array([ o[1][0] for o in batch ])
         states_ = numpy.array([ (no_state if o[1][3] is None else o[1][3]) for o in batch ])
-
+        print(states)
         p = agent.brain.predict(states)
 
         p_ = agent.brain.predict(states_, target=False)
@@ -158,7 +149,7 @@ class Agent:
         x = numpy.zeros((len(batch), IMAGE_STACK, IMAGE_WIDTH, IMAGE_HEIGHT))
         y = numpy.zeros((len(batch), self.actionCnt))
         errors = numpy.zeros(len(batch))
-        
+     
         for i in range(len(batch)):
             o = batch[i][1]
             s = o[0]; a = o[1]; r = o[2]; s_ = o[3]
@@ -265,4 +256,4 @@ try:
     while True:
         env.run(agent,pre)
 finally:
-    agent.brain.model.save("DQN-PER-Inet.h5")
+    agent.brain.model.save("DQNinet.h5")

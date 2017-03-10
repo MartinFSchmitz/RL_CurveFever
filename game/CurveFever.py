@@ -13,7 +13,7 @@ COLOR_ONE = (255, 0, 0)
 COLOR_TWO = (0, 255, 0)
 COLOR_THREE = (0, 0, 255)
 BG_COLOR = (0, 0, 0)
-SIZE = 34
+SIZE = 20
 MAP_SIZE = (SIZE, SIZE) # 34 is minimal size (otherwise cnn causes error)
 SCREEN_SCALE = 10
 
@@ -167,9 +167,9 @@ class SinglePlayer (Main):
 
         #self.player_1 = HumanPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
-        #self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
+        self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
         #self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
-        self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        #self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False
 
     def step_score(self):

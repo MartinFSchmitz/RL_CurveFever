@@ -39,8 +39,8 @@ class Brain:
         model.compile(loss=hubert_loss, optimizer=opt)
         return model
     
-    def predictOne(self, s):
-        return self.predict(s.reshape(1, self.state_Cnt[0], self.state_Cnt[1], self.state_Cnt[2])).flatten()
+    def predictOne(self, s, target = False):
+        return self.predict(s.reshape(1, self.state_Cnt[0], self.state_Cnt[1], self.state_Cnt[2]), target).flatten()
     
 #------------------------------------------------------------------  
 def get_random_equal_state(sample):
@@ -74,8 +74,6 @@ def init_game():
     game.init( render = False)
     return game
 
-
-        
 def save_model(model, file, name):
     # serialize weights to HDF5
     model.save_weights(

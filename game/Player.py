@@ -149,11 +149,12 @@ class QLFAPlayer(Player):
 
     def init_algorithm(self):
         self.prepro = LFAPreprocessor(self.mapSize[0])
-        self.models = joblib.load('data/lfa/model_16.pkl')
+        self.models = joblib.load('data/lfa/model_end.pkl')
         
     def do_action(self, game_state):    
-        state, _, _ = self.prepro.lfa_preprocess_state(game_state)
+        state, _, _ = self.prepro.lfa_preprocess_state_2(game_state)
         a = np.array([m.predict([state])[0] for m in self.models])
+        print(a)
         self.rotate = np.argmax(a) - 1
 
 
@@ -190,9 +191,10 @@ class DQNPlayer(CNNPlayer):
     def get_model(self):
         return "data/dqn/model.json"
     def load_cnn(self):
-        self.cnn.load_weights("data/dqn/m.h5")      
+        self.cnn.load_weights("data/dqn/model_3.h5")      
     def choose_action(self, s):
         values = self.cnn.predict(s).flatten()
+        print(values)
         return np.argmax(values.flatten())  # argmax(Q(s,a))
 class REINFORCEPlayer(CNNPlayer):
     def get_model(self):
