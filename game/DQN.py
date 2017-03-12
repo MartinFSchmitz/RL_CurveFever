@@ -22,9 +22,9 @@ import RL_Algo
 SIZE = 20
 DEPTH = 2
 STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
-ACTION_CNT = 2  # left, right, straight
+ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 200  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 200000  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -40,7 +40,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 UPDATE_TARGET_FREQUENCY = 10000
 
 SAVE_XTH_GAME = 1000 # all x games, save the CNN
-LEARNING_FRAMES = 1000000 # 50mio
+LEARNING_FRAMES = 5000000 # 50mio
 
 #-------------------- BRAIN ---------------------------
 
@@ -236,8 +236,7 @@ class Environment:
         while True:
             # one step of game emulation
             action = agent.act(state)  # agent decides an action
-            # converts interval (0,2) to (-1,1)
-            self.game.player_1.action = action - 1
+            self.game.player_1.action = action
             next_state, reward, done = self.pre.cnn_preprocess_state(self.game.AI_learn_step())
             if done: # terminal state
                 reward = 0
@@ -276,9 +275,13 @@ try:
     while True:
         if frame_count >= LEARNING_FRAMES:
             break
+        ten_episodes_reward = 0
         episode_reward = env.run(agent)
+        ten_episodes_reward += episode_reward
         frame_count += episode_reward
-        rewards.append(episode_reward)
+        if episode_count % 50 == 0 :
+            rewards.append(ten_episodes_reward)
+            ten_episodes_reward = 0
         episode_count += 1
 
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN

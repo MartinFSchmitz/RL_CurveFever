@@ -74,7 +74,7 @@ class PG:
 
         rewards = statbin.statbin(10)
         observation = self.env.reset()
-        prev_x = None # used in computing the difference frame
+        last_state = None # used in computing the difference frame
         xs,hs,dlogps,drs = [],[],[],[]
         running_reward = None
         reward_sum = 0
@@ -84,17 +84,17 @@ class PG:
 
           # preprocess the observation, set input to network to be difference image
           if not self.preprocessor ==None:
-              cur_x = self.preprocessor(observation)
+              state = self.preprocessor(observation)
           else:
-              cur_x = observation
+              state = observation
 
-          x = cur_x - prev_x if prev_x is not None else np.zeros(self.input_dim, dtype='float32')
+          x = state - last_state if last_state is not None else np.zeros(self.input_dim, dtype='float32')
           x = x.flatten()
-          prev_x = cur_x
+          last_state = state
 
           # forward the policy network and sample an action from the returned probability
-          aprob = self.model.predict(x.reshape([1,self.input_dim]), batch_size=1).flatten()
-          action = np.random.choice( self.env.action_space.n, 1, p=aprob/np.sum(aprob) )[0]
+          action_prob = self.model.predict(x.reshape([1,self.input_dim]), batch_size=1).flatten()
+          action = np.random.choice( self.env.action_space.n, 1, p=action_prob/np.sum(action_prob) )[0]
 
           # record various intermediates (needed later for backprop)
           xs.append(x) # observation
@@ -104,11 +104,11 @@ class PG:
           y[action] = 1
 
           # Subtle Grad ...
-#          y = aprob*0.9
-#          y[action] = aprob[action] * 1.1
+#          y = action_prob*0.9
+#          y[action] = action_prob[action] * 1.1
 
           dlogps.append(y) # grad that encourages the action that was tak
-          #dlogps.append(y - aprob) # grad that encourages the action that was tak
+          #dlogps.append(y - action_prob) # grad that encourages the action that was tak
           observation, reward, done, info = self.env.step(action)
           reward_sum += float(reward)
 
@@ -118,9 +118,9 @@ class PG:
             episode_number += 1
 
             # stack together all inputs, hidden states, action gradients, and rewards for this episode
-            epx = np.vstack(xs)
-            epdlogp = np.vstack(dlogps)
-            epr = np.vstack(drs)
+            epx = np.vstack(xs) # states
+            epdlogp = np.vstack(dlogps) # y arrays
+            epr = np.vstack(drs) # rewards
             xs,hs,dlogps,drs = [],[],[],[] # reset array memory
 
             # compute the discounted reward backwards through time
@@ -142,7 +142,7 @@ class PG:
                 self.save()
             reward_sum = 0
             observation = self.env.reset() # reset env
-            prev_x = None
+            last_state = None
 
             if(self.enable_plots):
                 plt.figure(1)

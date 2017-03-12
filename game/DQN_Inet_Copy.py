@@ -48,9 +48,12 @@ class Brain:
         self.model.fit(x, y, batch_size=32, nb_epoch=epoch, verbose=verbose)
 
     def predict(self, s, target=False):
+
         if target:
             return self.model_.predict(s)
         else:
+            #print(s)
+            print(self.model.predict(s))
             return self.model.predict(s)
 
     def predictOne(self, s, target=False):
@@ -140,7 +143,7 @@ class Agent:
 
         states = numpy.array([ o[1][0] for o in batch ])
         states_ = numpy.array([ (no_state if o[1][3] is None else o[1][3]) for o in batch ])
-        print(states)
+
         p = agent.brain.predict(states)
 
         p_ = agent.brain.predict(states_, target=False)

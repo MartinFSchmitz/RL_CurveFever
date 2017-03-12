@@ -179,7 +179,7 @@ def q_learning(game, estimator):
             action = np.random.choice(
                 np.arange(len(action_probs)), p=action_probs)
             # converts interval (0,2) to (-1,1)
-            game.player_1.action = action - 1
+            game.player_1.action = action
             # Take a step
             next_state, reward, done = preprocess_state(only_state=False)
 

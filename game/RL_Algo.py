@@ -29,20 +29,21 @@ class Brain:
     
         model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(input)))    
         #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
-        model.add(Convolution2D(64, 3, 3, activation='relu'))
+        model.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(input)))
         model.add(Flatten())
-        model.add(Dense(output_dim=512, activation='relu'))
+        model.add(Dense(output_dim=256, activation='relu'))
     
         model.add(Dense(output_dim=output, activation=act_fun))
     
         opt = RMSprop(lr=0.00025) #RMSprob is a popular adaptive learning rate method 
-        model.compile(loss=hubert_loss, optimizer=opt)
+        model.compile(loss='mse', optimizer=opt)
         return model
     
     def predictOne(self, s, target = False):
-        return self.predict(s.reshape(1, self.state_Cnt[0], self.state_Cnt[1], self.state_Cnt[2]), target).flatten()
+        state =s.reshape(1, self.state_Cnt[0], self.state_Cnt[1], self.state_Cnt[2])
+        return self.predict(state, target).flatten()
     
-#------------------------------------------------------------------  
+#------------------------------------------------------------------
 def get_random_equal_state(sample):
 
     # Gets one random of the 8 equivalent mirrored and rotated states, to
@@ -85,9 +86,23 @@ def save_model(model, file, name):
         with open("data/" + file + "/model.json", "w") as json_file:
             json_file.write(model_json)
 
-def make_plot(x,y,name):
+def make_plot(x, name, step):
     
-    plt.plot(x, y)
+    step_x = []
+    rewards = 0
+    for i in xrange (len(x)):
+        rewards += x[i]
+        if i % step == 0:
+            step_x.append(rewards/step)
+            rewards = 0
+    reward_array = np.asarray(x)
+    episodes = np.arange(0, reward_array.size, 1)
+    reward_step_array = np.asarray(step_x)   
+    episodes_step = np.arange(0, reward_array.size , step)    
+     
+    plt.plot( episodes,reward_array,linewidth=0.2,color='g')
+    plt.plot(episodes_step,reward_step_array,linewidth=1.5,color = 'r')
+
     plt.xlabel('Number of episode')
     plt.ylabel('Reward')
     plt.title(name.upper() + ': Rewards per episode')

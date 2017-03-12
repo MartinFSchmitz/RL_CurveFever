@@ -6,7 +6,8 @@ Created on 16.02.2017
 import sys
 import pygame
 import Map
-from Player import *
+from game.CurvePlayer import *
+from game.TronPlayer import *
 
 # Constants
 COLOR_ONE = (255, 0, 0)
@@ -151,7 +152,8 @@ class Learn_SinglePlayer (Main):
 
     def create_players(self):
 
-        self.player_1 = Player(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        self.player_1 = TronPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        #self.player_1 = CurvePlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False
 
     def step_score(self):
@@ -165,15 +167,15 @@ class SinglePlayer (Main):
 
     def create_players(self):
 
-        #self.player_1 = HumanPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
+        self.player_1 = HumanPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
-        self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
+        #self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
         #self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         #self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False
 
     def step_score(self):
-        return 1
+        return 1.0
 
     def get_end_score(self):
         return self.score
@@ -209,4 +211,4 @@ if __name__ == '__main__':
     while True:
         self.step(multi=self.multi)
         pygame.display.update()
-        self.clock.tick(30)
+        self.clock.tick(20)
