@@ -9,6 +9,9 @@ import Map
 from game.CurvePlayer import *
 from game.TronPlayer import *
 
+#GAME_TYPE = 'Tron'
+GAME_TYPE = 'Curve'
+
 # Constants
 COLOR_ONE = (255, 0, 0)
 COLOR_TWO = (0, 255, 0)
@@ -151,9 +154,11 @@ class Main(object):
 class Learn_SinglePlayer (Main):
 
     def create_players(self):
-
-        self.player_1 = TronPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
-        #self.player_1 = CurvePlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        if GAME_TYPE == 'Tron':
+            self.player_1 = TronPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        elif GAME_TYPE == 'Curve':
+            self.player_1 = CurvePlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        else: print( "Error: False Gametype ")
         self.multi = False
 
     def step_score(self):

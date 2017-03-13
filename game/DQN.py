@@ -24,7 +24,7 @@ DEPTH = 2
 STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 200000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 500000  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -39,8 +39,8 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 1000 # all x games, save the CNN
-LEARNING_FRAMES = 5000000 # 50mio
+SAVE_XTH_GAME = 10000 # all x games, save the CNN
+LEARNING_FRAMES = 50000000 # 50mio
 
 #-------------------- BRAIN ---------------------------
 
@@ -271,31 +271,27 @@ try:
     print("Starting learning")
     frame_count = 0
     episode_count = 0
-
+    
     while True:
         if frame_count >= LEARNING_FRAMES:
             break
-        ten_episodes_reward = 0
         episode_reward = env.run(agent)
-        ten_episodes_reward += episode_reward
         frame_count += episode_reward
-        if episode_count % 50 == 0 :
-            rewards.append(ten_episodes_reward)
-            ten_episodes_reward = 0
+        rewards.append(episode_reward)
+
         episode_count += 1
-
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
+            
             save_counter = episode_count / SAVE_XTH_GAME
-            reward_array = np.asarray(rewards)
-            episodes = np.arange(0, reward_array.size, 1)
-            RL_Algo.make_plot(episodes, reward_array, 'dqn')  
-            RL_Algo.save_model(agent.brain.model, file = 'dqn', name = str(save_counter))
 
+            RL_Algo.make_plot( rewards, 'dqn', 100)  
+            RL_Algo.save_model(agent.policy_brain.model, file = 'dqn', name = str(save_counter))
+    
 finally:
     # make plot
     reward_array = np.asarray(rewards)
     episodes = np.arange(0, reward_array.size, 1)
     
-    RL_Algo.make_plot(episodes, reward_array, 'dqn')  
+    RL_Algo.make_plot( reward_array, 'dqn',100)  
     RL_Algo.save_model(agent.brain.model, file = 'dqn', name = 'final')
     print("-----------Finished Process----------")
