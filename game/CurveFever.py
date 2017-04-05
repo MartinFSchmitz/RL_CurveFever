@@ -9,8 +9,8 @@ import Map
 from game.CurvePlayer import *
 from game.TronPlayer import *
 
-#GAME_TYPE = 'Tron'
-GAME_TYPE = 'Curve'
+GAME_TYPE = 'Tron'
+#GAME_TYPE = 'Curve'
 
 # Constants
 COLOR_ONE = (255, 0, 0)

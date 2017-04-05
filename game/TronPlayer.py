@@ -9,18 +9,13 @@ import math
 import random
 from cmath import sqrt
 import numpy as np
-import cPickle as pickle
+import pickle
 
 
 from keras.optimizers import *
 from keras.models import load_model
 from keras.models import model_from_json
-from sklearn.externals import joblib
 
-import sklearn.pipeline
-import sklearn.preprocessing
-from sklearn.linear_model import SGDRegressor
-from sklearn.kernel_approximation import RBFSampler
 
 import Greedy
 from Preprocessor import *
@@ -88,7 +83,7 @@ class TronPlayer(object):
 
     def draw(self, screen):
         # render new player position on the screen
-        halfScale = self.screenScale / 2
+        halfScale = int(self.screenScale / 2)
 
         x = int(self.x)
         y = int(self.y)

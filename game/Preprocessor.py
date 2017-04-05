@@ -6,7 +6,6 @@ Created on Feb 26, 2017
 
 
 from keras.layers import *
-from sklearn.externals import joblib
 import numpy as np
 import copy
 
@@ -79,13 +78,13 @@ class LFAPreprocessor:
 
         m = copy.copy(map)
         x = pos[0] / self.map_size
-        y = pos[1] / self.map_size
+        y = pos[1] / self.map_size 
         # Compute position vector pv
 
         pv_x = np.cos(rot)
         pv_y = np.sqrt(1 - pv_x)
-        for i in xrange(m[0].size):  # y coord
-            for j in xrange(m[0].size):  # x coord
+        for i in range(m[0].size):  # y coord
+            for j in range(m[0].size):  # x coord
                 if(m[i][j] == 1):
                     dy = i - y
                     dx = j - x
@@ -103,16 +102,21 @@ class LFAPreprocessor:
                 # print(m[i][j])
 
         m = m.reshape(1, -1)[0]
-
-        pos = np.array([x, y])
+        x = 0.5 - x
+        y = 0.5 - y
+        abs =  np.sqrt((x**2)+(y**2))
+        pos = np.array([abs,x, y])
         features = np.append(pos, m)
 
         return features
     
     def lfa_preprocess_state_2(self ,state, multi_player = False):
 
-        features = np.array(state["playerPos"])
-
+        p = state["playerPos"]
+        dx = 10 - p[0]
+        dy = 10 - p[1]
+        abs =  np.sqrt((dx**2)+(dy**2))
+        features = np.array([abs, dy, dx])
         return features, state["reward"], state["done"]
 
     

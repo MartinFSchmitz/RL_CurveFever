@@ -12,6 +12,7 @@ from CurveFever import Learn_SinglePlayer
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 #------------------------------------------------------------------
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
@@ -27,9 +28,9 @@ class Brain:
         # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
         #relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
     
-        model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(input)))    
+        model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(input),dim_ordering='th'))    
         #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
-        model.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(input)))
+        model.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(input),dim_ordering='th'))
         model.add(Flatten())
         model.add(Dense(output_dim=256, activation='relu'))
     
@@ -90,7 +91,7 @@ def make_plot(x, name, step):
     
     step_x = []
     rewards = 0
-    for i in xrange (len(x)):
+    for i in range (len(x)):
         rewards += x[i]
         if i % step == 0:
             step_x.append(rewards/step)

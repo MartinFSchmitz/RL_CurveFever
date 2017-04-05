@@ -24,7 +24,7 @@ DEPTH = 2
 STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 500000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 50000  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -39,7 +39,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 10000 # all x games, save the CNN
+SAVE_XTH_GAME = 1000 # all x games, save the CNN
 LEARNING_FRAMES = 50000000 # 50mio
 
 #-------------------- BRAIN ---------------------------

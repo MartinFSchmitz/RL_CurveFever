@@ -13,22 +13,19 @@ import numpy as np
 from SumTree import SumTree
 import pygame
 from CurveFever import Learn_SinglePlayer
-import sklearn.pipeline
-import sklearn.preprocessing
-from sklearn.linear_model import SGDRegressor
-from sklearn.kernel_approximation import RBFSampler
-from sklearn.externals import joblib
+
 from Preprocessor import LFAPreprocessor
 import RL_Algo
+import pickle
 
 """ Q-Learning mit Linearer Funktionsannaeherung und den Ideen des DQN"""
 
-SIZE = 34
+SIZE = 20
 #STATE_CNT = (2 + (SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
-STATE_CNT = 2
+STATE_CNT = 3
 ACTION_CNT = 4  # left, right, straight
 
-MEMORY_CAPACITY = 300000  # change to 500 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 30000  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -43,8 +40,10 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 5000  # all x games, save the CNN
+SAVE_XTH_GAME = 10000  # all x games, save the CNN
 LEARNING_FRAMES = 1000000
+
+ALPHA = 0.0001
 
 #-------------------- BRAIN ---------------------------
 
@@ -57,42 +56,35 @@ class Brain:
         # action space. Alternatively we could somehow encode the action
         # into the features, but this way it's easier to code up.
         self.model = []
-        a = np.zeros(STATE_CNT)
-
+        
         for _ in range(ACTION_CNT):
-            m = SGDRegressor(learning_rate="constant")
-            # We need to call partial_fit once to initialize the model
-            # or we get a NotFittedError when trying to make a prediction
-            # This is quite hacky.
-            m.partial_fit([a], [0])  # any state, just to avoid stupid error
+            m = np.zeros(STATE_CNT) + 0.5
             self.model.append(m)
+            
         self.updateTargetModel()
 
-    def train_single(self, x, y, a, epoch=1, verbose=0):  # old and not used anymore
-
-        #self.model.fit(x, y, batch_size=32, nb_epoch=epoch, verbose=verbose)
-
-        batch_size = a.size
-        for i in range(batch_size):
-            action = int(a[i])
-            self.model[action].partial_fit(x[i].reshape(1, -1), [y[i][action]])
-
-    def train(self, x, y, a, epoch=1, verbose=0):
-
+    def train(self, x, y, a,errors, epoch=1, verbose=0): # real train method! current is only for testing
         state = [[], [], [], []] # to change when actionCnt changes !!!!!!!!!!!!!!!!!!!!!!
         target = [[], [], [],[]]
-        batch_size = a.size
+        batch_size = a.size # could also use any other given variable .size
         for i in range(batch_size):
             action = int(a[i])
             state[action].append(x[i])
-            target[action].append(y[i][action])
+            target[action].append(errors[i])
         for act in range(ACTION_CNT):
             if(state[act] != []):
-                self.model[act].partial_fit(state[act], target[act])
+                states = np.array(state[act])
+                targets = np.hstack(np.array(target[act]))
+                delta = ALPHA *  np.dot(targets , states)
+                self.model[act] = self.model[act] + delta
+                
+    def train_small(self, x, y, a,errors, epoch=1, verbose=0):
+        act = int(a[0])
+        self.model[act] = self.model[act] + ALPHA * errors[0] * x[0] 
 
     def predict(self, s, target=False):
         # sometimes scalars instead of  [a b] arrays
-        batch_size = np.array(s).size / STATE_CNT
+        batch_size = int(np.array(s).size / STATE_CNT)
         pred = np.zeros((batch_size, ACTION_CNT))
         # s[0] ist das 0te state-tupel, und pred[0] das 0te tupel von predictions
         # bei m.predict(s)[0]  braucht man die [0] um das Ergebnis, dass ein
@@ -101,14 +93,15 @@ class Brain:
         if target:
 
             for i in range(batch_size):
-                pred[i] = [m.predict(s[i].reshape(1, -1))[0]
-                           for m in self.model_]
+                
+                pred[i] = [ np.inner(m,s[i].reshape(1, -1)) for m in self.model_]
         else:
 
             for i in range(batch_size):
-                pred[i] = [m.predict(s[i].reshape(1, -1))[0]
-                           for m in self.model]
-
+                pred[i] = [ np.inner(m,s[i].reshape(1, -1)) for m in self.model]
+                
+                #pred[i] = [m.predict(s[i].reshape(1, -1))[0]
+                #for m in self.model]
         return pred
 
     def updateTargetModel(self):
@@ -175,7 +168,8 @@ class Agent:
 
     def observe(self, sample):  # in (s, a, r, s_) format
 
-        error = self._get_sample_Target(sample)
+        #error = self._get_sample_Target(sample)
+        _,_,_,error = self._getTargets([(0, sample)])
         self.memory.add(error, sample)
 
         if self.steps % UPDATE_TARGET_FREQUENCY == 0:
@@ -186,7 +180,7 @@ class Agent:
         self.epsilon = MIN_EPSILON + \
             (MAX_EPSILON - MIN_EPSILON) * math.exp(-LAMBDA * self.steps)
 
-    def _get_sample_Target(self, sample):
+    def _get_sample_Target(self, sample): # not used anymore
         # sample in (s, a, r, s_) format
         p = agent.brain.predict(sample[0].reshape(1, -1), target=False)[0]
         oldVal = p[sample[1]]
@@ -203,14 +197,18 @@ class Agent:
         return error
 
     # Computes (Input, Output, Error) tuples -->Q-Learning happens here
+
     def _getTargets(self, batch):
+        # Computes (Input, Output, Error) tuples -->Q-Learning happens here
         no_state = np.zeros(STATE_CNT)
 
         states = np.array([o[1][0] for o in batch])  # stores all states
         states_ = np.array([(no_state if o[1][3] is None else o[1][3])
-                            for o in batch])  # stores only final states
+                               for o in batch])  # stores only final states
+        
+        p = agent.brain.predict(states)
+        #print(p[0])
 
-        p = agent.brain.predict(states, target=False)
         p_ = agent.brain.predict(states_, target=False)
         pTarget_ = agent.brain.predict(states_, target=True)
 
@@ -227,30 +225,29 @@ class Agent:
             s_ = o[3]
 
             t = p[i]
+
             oldVal = t[a]
             if s_ is None:
                 t[a] = r
             else:
                 # double DQN (Bellmann Equation)
                 t[a] = r + GAMMA * pTarget_[i][np.argmax(p_[i])]
-
             x[i] = s
             y[i] = t
             z[i] = a
-            errors[i] = abs(oldVal - t[a])
+            errors[i] =  t[a] - oldVal
 
         return (x, y, z, errors)
-
     def replay(self):
         # Update Tuples and Errors, than train the SGD Regressor
         batch = self.memory.sample(BATCH_SIZE)
         x, y, a, errors = self._getTargets(batch)
         # update errors
+        abs_err = abs(errors)
         for i in range(len(batch)):
             idx = batch[i][0]
-            self.memory.update(idx, errors[i])
-
-        self.brain.train(x, y, a)
+            self.memory.update(idx, abs_err[i])
+        self.brain.train(x, y, a, errors)
 
 
 class RandomAgent:  # Takes Random Action
@@ -281,35 +278,31 @@ class Environment:
         self.game = RL_Algo.init_game()
         self.pre = LFAPreprocessor(SIZE+2)
         
-    def run(self, agent, count):
+    def run(self, agent):
 
         # run one episode of the game, store the states and replay them every
         # step
         self.game.init(render = False)
         state, reward, done = self.pre.lfa_preprocess_state_2(self.game.AI_learn_step())  # 1st frame no action
         R = 0
-        k = 4  # step hopper
-        counter = 0
+
         while True:
             # one step of game emulation
-            if (counter % k == 0):
-                action = agent.act(state)  # agent decides an action
-                # converts interval (0,2) to (-1,1)
-                self.game.player_1.action = action
-                next_state, reward, done = self.pre.lfa_preprocess_state_2(self.game.AI_learn_step())
-                if done: # terminal state
-                    next_state = None
-                agent.observe((state, action, reward, next_state))  # agent adds the new sample
-                agent.replay()
-                state = next_state
-            else:
-                state, reward, done = self.pre.lfa_preprocess_state_2(self.game.AI_learn_step())
-            counter += 1
+            action = agent.act(state)  # agent decides an action
+            # converts interval (0,2) to (-1,1)
+            self.game.player_1.action = action
+            next_state, reward, done = self.pre.lfa_preprocess_state_2(self.game.AI_learn_step())
+            if done: # terminal state
+                reward = 0
+                next_state = None
+            agent.observe((state, action, reward, next_state))  # agent adds the new sample
+            agent.replay()
+            state = next_state
             R += reward
             if done:  # terminal state
                 break
         print("Total reward:", R)
-        return R, count + (counter / k)
+        return R
 #-------------------- MAIN ----------------------------
 
 env = Environment()
@@ -320,7 +313,7 @@ rewards = []
 try:
     print("Initialization with random agent...")
     while randomAgent.exp < MEMORY_CAPACITY:
-        env.run(randomAgent, 0)
+        env.run(randomAgent)
         #print(randomAgent.exp, "/", MEMORY_CAPACITY)
 
     agent.memory = randomAgent.memory
@@ -330,33 +323,29 @@ try:
     print("Starting learning")
     frame_count = 0
     episode_count = 0
-
+    
     while True:
         if frame_count >= LEARNING_FRAMES:
             break
-        ten_episodes_reward = 0
-        episode_reward, frame_count = env.run(agent, frame_count)
-        ten_episodes_reward += episode_reward
+        episode_reward = env.run(agent)
         frame_count += episode_reward
-        if episode_count % 50 == 0 :
-            rewards.append(ten_episodes_reward)
-            ten_episodes_reward = 0
-        episode_count += 1
+        rewards.append(episode_reward)
 
+        episode_count += 1
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
+            
             save_counter = episode_count / SAVE_XTH_GAME
-            reward_array = np.asarray(rewards)
-            episodes = np.arange(0, reward_array.size, 1)
-            RL_Algo.make_plot(episodes, reward_array, 'lfa')  
-            joblib.dump(agent.brain.model, 'data/lfa/model_' + str(save_counter) + '.pkl') 
-            print("Saved model " + str(save_counter) + " to disk")
-        #if episode_count == 10: break
-        
+
+            RL_Algo.make_plot( rewards, 'lfa', 100)  
+            pickle.dump(agent.brain.model, open(
+                        'data/lfa/save.p', 'wb'))
+    
 finally:
-        # make plot
+    # make plot
     reward_array = np.asarray(rewards)
     episodes = np.arange(0, reward_array.size, 1)
-    RL_Algo.make_plot(episodes, reward_array, 'lfa')  
-    joblib.dump(agent.brain.model, 'data/lfa/model_end.pkl') 
-    print("Saved FINAL model to disk.")
+    
+    RL_Algo.make_plot( reward_array, 'dqn',100)  
+    pickle.dump(agent.brain.model, open(
+                        'data/lfa/save.p', 'wb'))
     print("-----------Finished Process----------")
