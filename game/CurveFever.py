@@ -6,8 +6,8 @@ Created on 16.02.2017
 import sys
 import pygame
 import Map
-from game.CurvePlayer import *
-from game.TronPlayer import *
+from CurvePlayer import *
+from TronPlayer import *
 
 #GAME_TYPE = 'Tron'
 GAME_TYPE = 'Curve'
