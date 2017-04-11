@@ -12,19 +12,12 @@ import collections
 import pygame
 from CurveFever import Learn_SinglePlayer
 
-from keras.models import *
-from keras.layers import *
-from keras import backend as K
-from keras.optimizers import *
-import tensorflow as tf
-
 from Preprocessor import CNNPreprocessor
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from RL_Algo import Brain
 import RL_Algo
-import copy
 
 '''
 """ Stochastic Poilcy Gradients """
@@ -32,7 +25,6 @@ import copy
 
 '''
 # HYPER PARAMETERS
-LEARNING_RATE = 5e-4
 GAMMA = 0.99
 LEARNING_FRAMES = 1000000
 SAVE_XTH_GAME = 1000
@@ -45,129 +37,45 @@ ACTION_CNT = 4 # left, right, straight
 
 #-------------------- BRAINS ---------------------------
 
-class Policy_Brain():      
+class Policy_Brain(Brain):      
     
     def __init__(self):
-        self.session = tf.Session()
-        K.set_session(self.session)
-
-
-        self.model = self._build_model()
-        self.graph = self._build_graph(self.model)
-
-        self.session.run(tf.global_variables_initializer())
-        self.default_graph = tf.get_default_graph()
-
-        #self.default_graph.finalize()    # avoid modifications
+ 
+        self.model = self._createModel(STATE_CNT,ACTION_CNT,'softmax')
         
-        self.rewards = [] # store rewards for graph
+    def train(self, states, targets, epoch=1, verbose=0):
 
-    def _build_model(self):
-
-        l_input = Input(batch_shape = (None,STATE_CNT[0],STATE_CNT[1],STATE_CNT[2]))
-        l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
-        l_conv_2 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
-        
-
-        l_conv_flat = Flatten()(l_conv_2)
-        l_dense = Dense(units=16, activation='relu')(l_conv_flat)
-
-        
-        out_actions = Dense(units = ACTION_CNT, activation='softmax')(tf.convert_to_tensor(l_dense))
-
-        model = Model(inputs=[l_input], outputs=[out_actions])
-        model._make_predict_function()    # have to initialize before threading
-
-        return model
-
-    def _build_graph(self, model):
-        s_t = tf.placeholder(tf.float32, shape=(None,STATE_CNT[0],STATE_CNT[1],STATE_CNT[2]))
-        #s_t = tf.placeholder(tf.float32, shape=(None,STATE_CNT_S))
-        a_t = tf.placeholder(tf.float32, shape=(None, ACTION_CNT))
-        r_t = tf.placeholder(tf.float32, shape=(None, 1)) # not immediate, but discounted reward
-        b_t = tf.placeholder(tf.float32, shape=(None, 1)) # baseline
-        
-        p = model(s_t) # the placeholder s_t is inserted into the model, the output will be: p,v
-        log_prob = tf.log( tf.reduce_sum(p * a_t, axis=1, keep_dims=True) + 1e-10)
-        advantage = r_t - b_t
-
-        loss=  - log_prob * tf.stop_gradient(advantage)                                            # minimize value error
-
-        optimizer = tf.train.RMSPropOptimizer(LEARNING_RATE, decay=.99)
-        minimize = optimizer.minimize(loss)
-
-        return s_t, a_t, r_t, b_t, minimize
-    
-
-    def train(self,s,a,r,b):
-
-
-        s = np.vstack([s])
-        a = np.vstack(a)
-        r = np.vstack(r)   
-        b = np.vstack(b)
-        #print("s",s,"a",a,"r",r,"b",b)
-        s_t, a_t, r_t,b_t,  minimize = self.graph
-        self.session.run(minimize, feed_dict={s_t: s, a_t: a, r_t: r, b_t: b})
-        
-    def predict(self, s):
-        with self.default_graph.as_default():
-            p= self.model.predict(s)
-            return p
-        
-    def predictOne(self, s,):
-        state =s.reshape(1, STATE_CNT[0], STATE_CNT[1], STATE_CNT[2])
-        return self.predict(state).flatten()
-    
-
-
+        target_array = np.vstack(targets)
+        #target_array = np.array([target])
+        self.model.fit(states, target_array, batch_size=1, nb_epoch=epoch, verbose=verbose,shuffle=True)
+       
+    def predict(self, s, target = False):
+        return self.model.predict_proba(s, verbose=0)
 
 #------------------------------------------------------------------
-class Value_Brain():      
-    
+class Value_Brain(Brain):
+
     def __init__(self):
-        self.model = self._build_model()
+        self.model = self._createModel(STATE_CNT,1,'linear')
         
-        
-    def _build_model(self):
-        
-        l_input = Input(batch_shape = (None,STATE_CNT[0],STATE_CNT[1],STATE_CNT[2]))
-        l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
-        l_conv_2 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
-        
-
-        l_conv_flat = Flatten()(l_conv_2)
-        l_dense = Dense(units=16, activation='relu')(l_conv_flat)
-
-        
-        out = Dense(units = 1, activation='linear')(tf.convert_to_tensor(l_dense))
-
-        model = Model(inputs=[l_input], outputs=[out])
-        model._make_predict_function()    # have to initialize before threading
-        opt = RMSprop(lr=0.00025) #RMSprob is a popular adaptive learning rate method 
-        
-        model.compile(loss='mse', optimizer=opt)
-        return model
-        
-
-    def train(self,states, target, epoch=1, verbose=0):
+    def train(self, states, target, epoch=1, verbose=0):
         #reshaped_states = states.reshape(1 ,STATE_CNT[0] , STATE_CNT[1], STATE_CNT[2])
         target = np.vstack(target)
-        self.model.fit(states, target, batch_size=len(target), nb_epoch=epoch, verbose=verbose)
-        
-    def predict(self, s):
+        self.model.fit(states, target, batch_size=1, nb_epoch=epoch, verbose=verbose)
 
-        #with self.default_graph.as_default():
-        p = self.model.predict(s)
-        return p
+    def predict(self, s, target = False):
+        
+        return self.model.predict(s, verbose=0)
+
+
 #------------------------------------------------------------------
 class Agent:
     
     def __init__(self):
-        K.manual_variable_initialization(True)
+
         self.policy_brain = Policy_Brain()
         self.value_brain = Value_Brain() 
-        K.manual_variable_initialization(False)
+        
     def act(self, state):
         action_probs = self.policy_brain.predictOne(state) # create Array with action Probabilities, sum = 1
         action = np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
@@ -180,23 +88,42 @@ class Agent:
         discounted_r = np.zeros_like(r,dtype=float)
         running_add = 0.0
         r = r.flatten()
-        for t in reversed(range(0, r.size)):
+        for t in reversed(xrange(0, r.size)):
         
             running_add = running_add * GAMMA + r[t]
             discounted_r[t] = running_add
         return discounted_r
   
-    def replay(self, states,actions,rewards):
+    def replay(self, states,dlogps,rewards):
 
         total_return = self.discount_rewards(rewards)
 
-        self.value_brain.train(states, total_return) # RRRRRREEEEEEEwrite everything so that both brains are one class
-        #        s_ = np.vstack([s_])
-        baseline_value = self.value_brain.predict(states)  
+        self.value_brain.train(states, total_return)
+        baseline_value = agent.value_brain.predict(states)   
+        advantage = total_return - baseline_value
+        dlogps *= advantage
+        self.policy_brain.train(states,dlogps) 
 
-        #advantage = total_return - baseline_value
-        #print("t", total_return,"a",advantage)
-        self.policy_brain.train(states,actions,total_return,baseline_value) 
+        
+    def old_replay(self, episode):
+            # Go through the episode and make policy updates
+        for t, transition in enumerate(episode): # t is the counter, transition is one transition
+            
+            # The return after this timestep
+            total_return = sum(GAMMA**i * t.reward for i, t in enumerate(episode[t:]))
+            print(total_return)
+            # standardize the rewards to be unit normal (helps control the gradient estimator variance)
+            total_return -= np.mean(total_return)
+            total_return /= np.std(total_return)
+            
+            # Update our value estimator
+            agent.value_brain.train(transition.state, total_return)
+            # Calculate baseline/advantage
+            baseline_value = agent.value_brain.predictOne(transition.state)   
+            #baseline_value = 0     #temporary
+            advantage = total_return - baseline_value
+            # Update our policy estimator
+            self.policy_brain.train(transition.state, advantage, transition.action, transition.action_prob) # do this for every transition, and use total return
 
 #------------------------------------------------------------------
         
@@ -238,7 +165,7 @@ class Environment:
     
     def run(self, agent):
              
-        states,actions,rewards = [],[],[]
+        states,dlogps,rewards = [],[],[]
         # Reset the environment and pick the first action
         self.game.init(render = False)
         state, reward, done = self.pre.cnn_preprocess_state(self.game.AI_learn_step())
@@ -258,9 +185,10 @@ class Environment:
             state = state.reshape(1 ,STATE_CNT[0] , STATE_CNT[1], STATE_CNT[2])
             
             states.append(state)            
+            # Harsh Grad ...
             y = np.zeros([ACTION_CNT])
-            y[action] = 1 
-            actions.append(y) # grad that encourages the action that was tak
+            y[action] = -np.log(action_prob) # action_prob for subtle grid
+            dlogps.append(y) # grad that encourages the action that was tak
             rewards.append(reward)
 
             all_rewards += reward
@@ -269,7 +197,7 @@ class Environment:
             state = next_state        
 
         states_array = np.vstack(states)
-        agent.replay(states_array,actions,rewards)
+        agent.replay(states_array,dlogps,rewards)
         
         print( "Total reward:", all_rewards )
         return all_rewards
@@ -298,14 +226,14 @@ try:
             
             save_counter = episode_count / SAVE_XTH_GAME
 
-            RL_Algo.make_plot( rewards, 'reinforce', 100)  
+            RL_Algo.make_plot( rewards, 'reinforce', 50)  
             RL_Algo.save_model(agent.policy_brain.model, file = 'reinforce', name = str(save_counter))
         
 finally:        
         # make plot
     reward_array = np.asarray(rewards)
     episodes = np.arange(0, reward_array.size, 1)
-    RL_Algo.make_plot(episodes, 'reinforce', 100)  
+    RL_Algo.make_plot(episodes, 'reinforce', 10)  
     
     RL_Algo.save_model(agent.policy_brain.model, file = 'reinforce', name = 'final')
     print("-----------Finished Process----------")

@@ -25,7 +25,7 @@ SIZE = 20
 STATE_CNT = 3
 ACTION_CNT = 4  # left, right, straight
 
-MEMORY_CAPACITY = 30000  # change to 500 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 3000  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -89,7 +89,7 @@ class Brain:
         # s[0] ist das 0te state-tupel, und pred[0] das 0te tupel von predictions
         # bei m.predict(s)[0]  braucht man die [0] um das Ergebnis, dass ein
         # array ist in ein skalar umzuwandeln
-
+        print("m",self.model[0],"s",s)
         if target:
 
             for i in range(batch_size):

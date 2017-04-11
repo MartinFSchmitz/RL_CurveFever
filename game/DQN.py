@@ -24,7 +24,7 @@ DEPTH = 2
 STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
 ACTION_CNT = 3  # left, right, straight
 
-MEMORY_CAPACITY = 50000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 30000  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -39,7 +39,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 1000 # all x games, save the CNN
+SAVE_XTH_GAME = 10000 # all x games, save the CNN
 LEARNING_FRAMES = 50000000 # 50mio
 
 #-------------------- BRAIN ---------------------------
@@ -258,14 +258,17 @@ agent = Agent()
 randomAgent = RandomAgent()
 rewards = []
 
+#rewaaards = 0
+#gaaames = 0
 try:
     print("Initialization with random agent...")
     while randomAgent.exp < MEMORY_CAPACITY:
-        env.run(randomAgent)
+        reward = env.run(randomAgent)
         #print(randomAgent.exp, "/", MEMORY_CAPACITY)
-
+        #rewaaards += reward
+        #gaaames +=1
     agent.memory = randomAgent.memory
-
+    #print("seeeeeeeee",rewaaards/gaaames)
     randomAgent = None
 
     print("Starting learning")

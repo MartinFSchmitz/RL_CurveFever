@@ -50,14 +50,14 @@ class Policy_Brain():
     def __init__(self):
         self.session = tf.Session()
         K.set_session(self.session)
+        K.manual_variable_initialization(True)
 
-
-        self.model = self._build_model()
+        self.model,self.v_model = self._build_model()
         self.graph = self._build_graph(self.model)
 
         self.session.run(tf.global_variables_initializer())
         self.default_graph = tf.get_default_graph()
-
+        K.manual_variable_initialization(False)
         #self.default_graph.finalize()    # avoid modifications
         
         self.rewards = [] # store rewards for graph
@@ -78,7 +78,26 @@ class Policy_Brain():
         model = Model(inputs=[l_input], outputs=[out_actions])
         model._make_predict_function()    # have to initialize before threading
 
-        return model
+
+#------------------------------------------------------------------
+
+        v_l_input = Input(batch_shape = (None,STATE_CNT[0],STATE_CNT[1],STATE_CNT[2]))
+        v_l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(v_l_input)
+        v_l_conv_2 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(v_l_conv_1)
+        
+
+        v_l_conv_flat = Flatten()(v_l_conv_2)
+        v_l_dense = Dense(units=16, activation='relu')(v_l_conv_flat)
+
+        
+        v_out = Dense(units = 1, activation='linear')(tf.convert_to_tensor(v_l_dense))
+
+        v_model = Model(inputs=[v_l_input], outputs=[v_out])
+        v_model._make_predict_function()    # have to initialize before threading
+        opt = RMSprop(lr=0.00025) #RMSprob is a popular adaptive learning rate method 
+        
+        v_model.compile(loss='mse', optimizer=opt)
+        return model, v_model
 
     def _build_graph(self, model):
         s_t = tf.placeholder(tf.float32, shape=(None,STATE_CNT[0],STATE_CNT[1],STATE_CNT[2]))
@@ -119,55 +138,26 @@ class Policy_Brain():
         state =s.reshape(1, STATE_CNT[0], STATE_CNT[1], STATE_CNT[2])
         return self.predict(state).flatten()
     
-
-
-
-#------------------------------------------------------------------
-class Value_Brain():      
-    
-    def __init__(self):
-        self.model = self._build_model()
-        
-        
-    def _build_model(self):
-        
-        l_input = Input(batch_shape = (None,STATE_CNT[0],STATE_CNT[1],STATE_CNT[2]))
-        l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
-        l_conv_2 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
-        
-
-        l_conv_flat = Flatten()(l_conv_2)
-        l_dense = Dense(units=16, activation='relu')(l_conv_flat)
-
-        
-        out = Dense(units = 1, activation='linear')(tf.convert_to_tensor(l_dense))
-
-        model = Model(inputs=[l_input], outputs=[out])
-        model._make_predict_function()    # have to initialize before threading
-        opt = RMSprop(lr=0.00025) #RMSprob is a popular adaptive learning rate method 
-        
-        model.compile(loss='mse', optimizer=opt)
-        return model
-        
-
-    def train(self,states, target, epoch=1, verbose=0):
+    def train_v(self,states, target, epoch=1, verbose=0):
         #reshaped_states = states.reshape(1 ,STATE_CNT[0] , STATE_CNT[1], STATE_CNT[2])
         target = np.vstack(target)
-        self.model.fit(states, target, batch_size=len(target), nb_epoch=epoch, verbose=verbose)
+        self.v_model.fit(states, target, batch_size=len(target), nb_epoch=epoch, verbose=verbose)
         
-    def predict(self, s):
+    def predict_v(self, s):
 
         #with self.default_graph.as_default():
-        p = self.model.predict(s)
+        p = self.v_model.predict(s)
         return p
+
+
 #------------------------------------------------------------------
 class Agent:
     
     def __init__(self):
-        K.manual_variable_initialization(True)
+        
         self.policy_brain = Policy_Brain()
-        self.value_brain = Value_Brain() 
-        K.manual_variable_initialization(False)
+        #self.value_brain = Value_Brain() 
+
     def act(self, state):
         action_probs = self.policy_brain.predictOne(state) # create Array with action Probabilities, sum = 1
         action = np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
@@ -190,9 +180,9 @@ class Agent:
 
         total_return = self.discount_rewards(rewards)
 
-        self.value_brain.train(states, total_return) # RRRRRREEEEEEEwrite everything so that both brains are one class
+        self.policy_brain.train_v(states, total_return) # RRRRRREEEEEEEwrite everything so that both brains are one class
         #        s_ = np.vstack([s_])
-        baseline_value = self.value_brain.predict(states)  
+        baseline_value = self.policy_brain.predict_v(states)  
 
         #advantage = total_return - baseline_value
         #print("t", total_return,"a",advantage)

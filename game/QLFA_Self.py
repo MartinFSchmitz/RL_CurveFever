@@ -13,12 +13,10 @@ import math
 import pygame
 from CurveFever import Learn_SinglePlayer
 import RL_Algo
-from Preprocessor import LFAPreprocessor
 
 """ klassisches Q-Learning mit Linearer Funktionsannaeherung """
 
 # HYPER-PARAMETERS
-SIZE = 20
 STATE_CNT = 3
 ACTION_CNT = 3  # left, right, straight
 
@@ -29,7 +27,7 @@ EPSILON = 0.1,
 EPSILON_DECAY = 1.0
 MAX_EPSILON = 1
 MIN_EPSILON = 0.1
-ALPHA = 0.001
+ALPHA = 0.0001
 
 # at this step epsilon will be 0.1  (1 000 000 in original paper)
 EXPLORATION_STOP = 10000
@@ -38,9 +36,25 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 #------------------------------------------------------------------
 
 
+def preprocess_state(only_state=True):
+
+    state = game.AI_learn_step()
+    p = state["playerPos"]
+    dx = 10 - p[0]
+    dy = 10 - p[1]
+    abss =  math.sqrt((dx**2)+(dy**2))
+    features = np.array([abss, dy, dx])
+    if only_state:
+        return features
+    else:
+        return features, state["reward"], state["done"]
 
 
-
+# init Game Environment
+game = Learn_SinglePlayer()
+game.first_init()
+game.init(render=False)
+state = preprocess_state()
 
 #------------------------------------------------------------------
 
@@ -50,7 +64,7 @@ class Estimator():
     Value Function approximator. 
     """
 
-    def __init__(self):
+    def __init__(self, init_state):
         # We create a separate model for each action in the environment's
         # action space. Alternatively we could somehow encode the action
         # into the features, but this way it's easier to code up.
@@ -121,7 +135,7 @@ def make_epsilon_greedy_policy(estimator, epsilon, nA):
 #------------------------------------------------------------------
 
 
-def q_learning(game, estimator,pre):
+def q_learning(game, estimator):
     """
     Q-Learning algorithm for fff-policy TD control using Function Approximation.
     Finds the optimal greedy policy while following an epsilon-greedy policy.
@@ -159,7 +173,7 @@ def q_learning(game, estimator,pre):
 
         # Reset the environment and pick the first action
         game.init(render = False)
-        state,_,_ = pre.lfa_preprocess_state_2(game.AI_learn_step())
+        state = preprocess_state()
         # One step in the environment
         for t in itertools.count():
 
@@ -170,7 +184,7 @@ def q_learning(game, estimator,pre):
             # converts interval (0,2) to (-1,1)
             game.player_1.action = action
             # Take a step
-            next_state, reward, done = pre.lfa_preprocess_state_2(game.AI_learn_step())
+            next_state, reward, done = preprocess_state(only_state=False)
 
             # Update statistics
             #stats.episode_rewards[i_episode] += reward
@@ -206,8 +220,6 @@ def q_learning(game, estimator,pre):
     return stats
 #------------------------------------------------------------------
 
-
 game = RL_Algo.init_game()
-pre = LFAPreprocessor(SIZE+2)
-estimator = Estimator()
-stats = q_learning(game, estimator, pre)
+estimator = Estimator(state)
+stats = q_learning(game, estimator)

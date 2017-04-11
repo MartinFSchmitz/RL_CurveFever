@@ -12,7 +12,6 @@ from CurveFever import Learn_SinglePlayer
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 #------------------------------------------------------------------
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
@@ -91,15 +90,15 @@ def make_plot(x, name, step):
     
     step_x = []
     rewards = 0
-    for i in range (len(x)):
+    for i in range (len(x)): #xrange
         rewards += x[i]
-        if i % step == 0:
+        if i % step == 0 and i != 0:
             step_x.append(rewards/step)
             rewards = 0
     reward_array = np.asarray(x)
     episodes = np.arange(0, reward_array.size, 1)
     reward_step_array = np.asarray(step_x)   
-    episodes_step = np.arange(0, reward_array.size , step)    
+    episodes_step = np.arange(step/2, reward_array.size-step/2 , step)    
      
     plt.plot( episodes,reward_array,linewidth=0.2,color='g')
     plt.plot(episodes_step,reward_step_array,linewidth=1.5,color = 'r')

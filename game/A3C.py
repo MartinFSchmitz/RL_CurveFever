@@ -16,16 +16,26 @@ Created on Apr 2, 2017
 import numpy as np
 import tensorflow as tf
 
-import gym, time, random, threading
+import  time, random, threading
 
 from keras.models import *
 from keras.layers import *
 from keras import backend as K
 
-#-- constants
-ENV = 'CartPole-v0'
+from Preprocessor import CNNPreprocessor
+from RL_Algo import Brain
+import RL_Algo
 
-RUN_TIME = 30
+#-- constants
+
+SIZE = 20
+DEPTH = 2
+STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
+STATE_CNT_S = DEPTH * (SIZE+2)**2
+#STATE_CNT = 3
+ACTION_CNT = 3
+
+RUN_TIME = 300 # changed to 30
 THREADS = 8
 OPTIMIZERS = 2
 THREAD_DELAY = 0.001
@@ -40,7 +50,7 @@ EPS_STOP  = .15
 EPS_STEPS = 75000
 
 MIN_BATCH = 32
-LEARNING_RATE = 5e-3
+LEARNING_RATE = 5e-3 #eig -4
 
 LOSS_V = .5            # v loss coefficient
 LOSS_ENTROPY = .01     # entropy coefficient
@@ -62,14 +72,32 @@ class Brain:
         self.default_graph = tf.get_default_graph()
 
         self.default_graph.finalize()    # avoid modifications
+        
+        self.rewards = [] # store rewards for graph
 
     def _build_model(self):
 
-        l_input = Input( batch_shape=(None, NUM_STATE) )
-        l_dense = Dense(16, activation='relu')(l_input)
+        #l_input = Input( batch_shape=(None, STATE_CNT) )
+        #l_dense = Dense(16, activation='relu')(l_input)
+        #l_input = Input(batch_shape = (None,STATE_CNT_S) )
+        l_input = Input(batch_shape = (None,STATE_CNT[0],STATE_CNT[1],STATE_CNT[2]))
+        l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
+        l_conv_2 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
+        
+        #print(l_input)
+        l_conv_flat = Flatten()(l_conv_2)
+        l_dense = Dense(units=16, activation='relu')(l_conv_flat)
+        """
+        submodel = Sequential()
+        submodel.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(STATE_CNT),dim_ordering='th'))    
+        submodel.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(STATE_CNT),dim_ordering='th'))
+        submodel.add(Flatten())
+        submodel.add(Dense(output_dim=256, activation='relu'))
+        """
 
-        out_actions = Dense(NUM_ACTIONS, activation='softmax')(l_dense)
-        out_value   = Dense(1, activation='linear')(l_dense)
+        
+        out_actions = Dense(units = ACTION_CNT, activation='softmax')(tf.convert_to_tensor(l_dense))
+        out_value   = Dense(units = 1, activation='linear')(l_dense)
 
         model = Model(inputs=[l_input], outputs=[out_actions, out_value])
         model._make_predict_function()    # have to initialize before threading
@@ -77,11 +105,12 @@ class Brain:
         return model
 
     def _build_graph(self, model):
-        s_t = tf.placeholder(tf.float32, shape=(None, NUM_STATE))
-        a_t = tf.placeholder(tf.float32, shape=(None, NUM_ACTIONS))
+        s_t = tf.placeholder(tf.float32, shape=(None,STATE_CNT[0],STATE_CNT[1],STATE_CNT[2]))
+        #s_t = tf.placeholder(tf.float32, shape=(None,STATE_CNT_S))
+        a_t = tf.placeholder(tf.float32, shape=(None, ACTION_CNT))
         r_t = tf.placeholder(tf.float32, shape=(None, 1)) # not immediate, but discounted n step reward
         
-        p, v = model(s_t)
+        p, v = model(s_t) # the placeholder s_t is inserted into the model, the output will be: p,v
 
         log_prob = tf.log( tf.reduce_sum(p * a_t, axis=1, keep_dims=True) + 1e-10)
         advantage = r_t - v
@@ -106,10 +135,11 @@ class Brain:
             s, a, r, s_, s_mask = self.train_queue
             self.train_queue = [ [], [], [], [], [] ]
 
-        s = np.vstack(s)
+        s = np.vstack([s])
         a = np.vstack(a)
-        r = np.vstack(r)
-        s_ = np.vstack(s_)
+        r = np.vstack(r)   
+        s_ = np.vstack([s_])
+
         s_mask = np.vstack(s_mask)
 
         if len(s) > 5*MIN_BATCH: print("Optimizer alert! Minimizing batch of %d" % len(s))
@@ -170,14 +200,14 @@ class Agent:
         global frames; frames = frames + 1
 
         if random.random() < eps:
-            return random.randint(0, NUM_ACTIONS-1)
+            return random.randint(0, ACTION_CNT-1)
 
         else:
             s = np.array([s])
             p = brain.predict_p(s)[0]
 
             # a = np.argmax(p)
-            a = np.random.choice(NUM_ACTIONS, p=p)
+            a = np.random.choice(ACTION_CNT, p=p)
 
             return a
     
@@ -188,7 +218,7 @@ class Agent:
 
             return s, a, self.R, s_
 
-        a_cats = np.zeros(NUM_ACTIONS)    # turn action into one-hot representation
+        a_cats = np.zeros(ACTION_CNT)    # turn action into one-hot representation
         a_cats[a] = 1 
 
         self.memory.append( (s, a_cats, r, s_) )
@@ -222,21 +252,21 @@ class Environment(threading.Thread):
     def __init__(self, render=False, eps_start=EPS_START, eps_end=EPS_STOP, eps_steps=EPS_STEPS):
         threading.Thread.__init__(self)
 
-        self.render = render
-        self.env = gym.make(ENV)
+        self.game = RL_Algo.init_game()
+        self.pre = CNNPreprocessor(STATE_CNT)
         self.agent = Agent(eps_start, eps_end, eps_steps)
-
+        
     def runEpisode(self):
-        s = self.env.reset()
-
+        
+        self.game.init(render = False)
+        s,_,_= self.pre.cnn_preprocess_state(self.game.get_game_state())
         R = 0
+        
         while True:         
             time.sleep(THREAD_DELAY) # yield 
-
-            if self.render: self.env.render()
-
             a = self.agent.act(s)
-            s_, r, done, info = self.env.step(a)
+            self.game.player_1.action = a
+            s_, r, done = self.pre.cnn_preprocess_state(self.game.AI_learn_step())
 
             if done: # terminal state
                 s_ = None
@@ -248,7 +278,7 @@ class Environment(threading.Thread):
 
             if done or self.stop_signal:
                 break
-
+        brain.rewards.append(R)
         print("Total R:", R)
 
     def run(self):
@@ -274,9 +304,8 @@ class Optimizer(threading.Thread):
 
 #-- main
 env_test = Environment(render=True, eps_start=0., eps_end=0.)
-NUM_STATE = env_test.env.observation_space.shape[0]
-NUM_ACTIONS = env_test.env.action_space.n
-NONE_STATE = np.zeros(NUM_STATE)
+
+NONE_STATE = np.zeros(STATE_CNT)
 
 brain = Brain()    # brain is global in A3C
 
@@ -302,4 +331,5 @@ for o in opts:
     o.join()
 
 print("Training finished")
-env_test.run()
+RL_Algo.make_plot( brain.rewards, 'a3c', 100)
+#env_test.run()
