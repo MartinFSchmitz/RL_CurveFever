@@ -65,8 +65,11 @@ class Policy_Brain():
     def _build_model(self):
 
         l_input = Input(batch_shape = (None,STATE_CNT[0],STATE_CNT[1],STATE_CNT[2]))
-        l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
-        l_conv_2 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
+        #l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
+        #l_conv_2 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
+        l_conv_1 = Convolution2D(32, 8, 8, subsample=(4,4), activation='relu',dim_ordering='th')  (l_input)  
+        #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
+        l_conv_2 =Convolution2D(64, 3, 3, activation='relu',dim_ordering='th')(l_conv_1)
         
 
         l_conv_flat = Flatten()(l_conv_2)
