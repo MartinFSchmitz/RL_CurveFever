@@ -25,7 +25,7 @@ SIZE = 20
 STATE_CNT = 3
 ACTION_CNT = 4  # left, right, straight
 
-MEMORY_CAPACITY = 3000  # change to 500 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 300  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -40,10 +40,10 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 10000  # all x games, save the CNN
+SAVE_XTH_GAME = 1000  # all x games, save the CNN
 LEARNING_FRAMES = 1000000
 
-ALPHA = 0.0001
+ALPHA = 0.0000002
 
 #-------------------- BRAIN ---------------------------
 
@@ -58,7 +58,7 @@ class Brain:
         self.model = []
         
         for _ in range(ACTION_CNT):
-            m = np.zeros(STATE_CNT) + 0.5
+            m = np.zeros(STATE_CNT)
             self.model.append(m)
             
         self.updateTargetModel()
@@ -89,7 +89,6 @@ class Brain:
         # s[0] ist das 0te state-tupel, und pred[0] das 0te tupel von predictions
         # bei m.predict(s)[0]  braucht man die [0] um das Ergebnis, dass ein
         # array ist in ein skalar umzuwandeln
-        print("m",self.model[0],"s",s)
         if target:
 
             for i in range(batch_size):
@@ -122,6 +121,7 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
         self.tree = SumTree(capacity)
 
     def _getPriority(self, error):
+
         return (error + self.e) ** self.a
 
     def add(self, error, sample):  # new Sample
@@ -168,7 +168,6 @@ class Agent:
 
     def observe(self, sample):  # in (s, a, r, s_) format
 
-        #error = self._get_sample_Target(sample)
         _,_,_,error = self._getTargets([(0, sample)])
         self.memory.add(error, sample)
 
@@ -180,23 +179,6 @@ class Agent:
         self.epsilon = MIN_EPSILON + \
             (MAX_EPSILON - MIN_EPSILON) * math.exp(-LAMBDA * self.steps)
 
-    def _get_sample_Target(self, sample): # not used anymore
-        # sample in (s, a, r, s_) format
-        p = agent.brain.predict(sample[0].reshape(1, -1), target=False)[0]
-        oldVal = p[sample[1]]
-
-        if sample[3] is None:
-            target = sample[2]  # target = reward
-        else:
-            p_ = agent.brain.predict(sample[3].reshape(1, -1), target=False)[0]
-            pTarget_ = agent.brain.predict(sample[3].reshape(1, -1), target=True)[0]
-            # double DQN (Bellmann Equation)
-            target = sample[2] + GAMMA * pTarget_[np.argmax(p_)]
-
-        error = abs(oldVal - target)
-        return error
-
-    # Computes (Input, Output, Error) tuples -->Q-Learning happens here
 
     def _getTargets(self, batch):
         # Computes (Input, Output, Error) tuples -->Q-Learning happens here
@@ -207,7 +189,6 @@ class Agent:
                                for o in batch])  # stores only final states
         
         p = agent.brain.predict(states)
-        #print(p[0])
 
         p_ = agent.brain.predict(states_, target=False)
         pTarget_ = agent.brain.predict(states_, target=True)
@@ -335,7 +316,8 @@ try:
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
             
             save_counter = episode_count / SAVE_XTH_GAME
-
+            pickle.dump(np.asarray(rewards), open(
+                        'data/plots/save.p', 'wb'))
             RL_Algo.make_plot( rewards, 'lfa', 100)  
             pickle.dump(agent.brain.model, open(
                         'data/lfa/save.p', 'wb'))
@@ -343,9 +325,9 @@ try:
 finally:
     # make plot
     reward_array = np.asarray(rewards)
-    episodes = np.arange(0, reward_array.size, 1)
+    #episodes = np.arange(0, reward_array.size, 1)
     
-    RL_Algo.make_plot( reward_array, 'dqn',100)  
+    RL_Algo.make_plot( reward_array, 'lfa',100)  
     pickle.dump(agent.brain.model, open(
                         'data/lfa/save.p', 'wb'))
     print("-----------Finished Process----------")

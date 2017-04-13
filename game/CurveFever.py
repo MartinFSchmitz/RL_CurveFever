@@ -9,8 +9,8 @@ import Map
 from CurvePlayer import *
 from TronPlayer import *
 
-#GAME_TYPE = 'Tron'
-GAME_TYPE = 'Curve'
+GAME_TYPE = 'Tron'
+#GAME_TYPE = 'Curve'
 
 # Constants
 COLOR_ONE = (255, 0, 0)
@@ -172,9 +172,10 @@ class SinglePlayer (Main):
 
     def create_players(self):
 
-        self.player_1 = HumanPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
+        #self.player_1 = HumanPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
-        #self.player_1 = QLFAPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
+        self.player_1 = QLFAPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
+        #self.player_1 = LFA_REI_Player_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
         #self.player_1 = DQNPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         #self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False

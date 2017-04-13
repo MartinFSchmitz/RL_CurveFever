@@ -18,7 +18,7 @@ import RL_Algo
 
 # HYPER-PARAMETERS
 STATE_CNT = 3
-ACTION_CNT = 3  # left, right, straight
+ACTION_CNT = 4  # left, right, straight
 
 NUM_EPISODES = 1000000
 
@@ -27,7 +27,7 @@ EPSILON = 0.1,
 EPSILON_DECAY = 1.0
 MAX_EPSILON = 1
 MIN_EPSILON = 0.1
-ALPHA = 0.0001
+ALPHA = 0.008
 
 # at this step epsilon will be 0.1  (1 000 000 in original paper)
 EXPLORATION_STOP = 10000
@@ -71,7 +71,7 @@ class Estimator():
         self.models = []
         for _ in range(ACTION_CNT):
 
-            model = np.zeros(STATE_CNT) + 0.5
+            model = np.zeros(STATE_CNT)
 
             self.models.append(model)
 
@@ -89,11 +89,10 @@ class Estimator():
             in the environment where pred[i] is the prediction for action i.
 
         """
-
         if not a:
             return np.array([ np.inner(m,s) for m in self.models])
         else:
-            np.inner(self.models[a],s)
+            return np.inner(self.models[a],s)
 
 
     def update(self, s, a, y):
@@ -198,12 +197,14 @@ def q_learning(game, estimator):
             # Q-Value TD Target
             if not done:  
                 td_target = reward + GAMMA * np.max(q_values_next)
+
             else:
                 td_target = reward
 
             td_error = ( td_target - old_val)
             # print(q_values_next)
             # Update the function approximator using our target
+
             estimator.update(state, action, td_error)
             if done:
                 print("done episode: ", i_episode, "time:", t)

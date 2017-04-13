@@ -22,9 +22,9 @@ import RL_Algo
 SIZE = 20
 DEPTH = 2
 STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
-ACTION_CNT = 3  # left, right, straight
+ACTION_CNT = 4  # left, right, straight
 
-MEMORY_CAPACITY = 30000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 300000  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -39,7 +39,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 10000 # all x games, save the CNN
+SAVE_XTH_GAME = 5000 # all x games, save the CNN
 LEARNING_FRAMES = 50000000 # 50mio
 
 #-------------------- BRAIN ---------------------------
@@ -288,7 +288,7 @@ try:
             save_counter = episode_count / SAVE_XTH_GAME
 
             RL_Algo.make_plot( rewards, 'dqn', 100)  
-            RL_Algo.save_model(agent.policy_brain.model, file = 'dqn', name = str(save_counter))
+            RL_Algo.save_model(agent.brain.model, file = 'dqn', name = str(save_counter))
     
 finally:
     # make plot
