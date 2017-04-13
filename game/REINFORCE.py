@@ -308,7 +308,7 @@ finally:
         # make plot
     reward_array = np.asarray(rewards)
     episodes = np.arange(0, reward_array.size, 1)
-    RL_Algo.make_plot(episodes, 'reinforce', 100)  
+    RL_Algo.make_plot(episodes, 'reinforce', 100,save_array = True)  
     
     RL_Algo.save_model(agent.policy_brain.model, file = 'reinforce', name = 'final')
     print("-----------Finished Process----------")

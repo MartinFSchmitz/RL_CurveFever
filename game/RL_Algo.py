@@ -12,6 +12,7 @@ from CurveFever import Learn_SinglePlayer
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import pickle
 #------------------------------------------------------------------
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
@@ -86,8 +87,10 @@ def save_model(model, file, name):
         with open("data/" + file + "/model.json", "w") as json_file:
             json_file.write(model_json)
 
-def make_plot(x, name, step):
-    
+def make_plot(x, name, step, save_array = False):
+    if ( save_array == True):
+        pickle.dump(np.asarray(x), open(
+        'data/'+ name +'/'+'reward_array'+'.p', 'wb'))
     step_x = []
     rewards = 0
     for i in range (len(x)): #xrange

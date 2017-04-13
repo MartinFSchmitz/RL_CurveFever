@@ -262,7 +262,7 @@ finally:
     reward_array = np.asarray(rewards)
     episodes = np.arange(0, reward_array.size, 1)
     
-    RL_Algo.make_plot( reward_array, 'lfa_rei',100)  
+    RL_Algo.make_plot( reward_array, 'lfa_rei',100,save_array = True)  
     pickle.dump(agent.policy_brain.model, open(
                         'data/lfa_rei/save.p', 'wb'))
     print("-----------Finished Process----------")

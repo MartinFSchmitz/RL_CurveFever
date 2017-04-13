@@ -212,7 +212,7 @@ def q_learning(game, estimator):
                 if i_episode % 10000 == 0:
                     pickle.dump(estimator.models, open(
                         'data/lfa/save.p', 'wb'))
-                    RL_Algo.make_plot( rewards, 'lfa', 1000)  
+                    RL_Algo.make_plot( rewards, 'lfa', 100,save_array = True)  
   
                 break
 

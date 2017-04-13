@@ -83,8 +83,8 @@ class LFAPreprocessor:
 
         pv_x = np.cos(rot)
         pv_y = np.sqrt(1 - pv_x)
-        for i in xrange(m[0].size):  # y coord
-            for j in xrange(m[0].size):  # x coord
+        for i in range(m[0].size):  # y coord
+            for j in range(m[0].size):  # x coord
                 if(m[i][j] == 1):
                     dy = i - y
                     dx = j - x

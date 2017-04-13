@@ -316,8 +316,7 @@ try:
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
             
             save_counter = episode_count / SAVE_XTH_GAME
-            pickle.dump(np.asarray(rewards), open(
-                        'data/plots/save.p', 'wb'))
+
             RL_Algo.make_plot( rewards, 'lfa', 100)  
             pickle.dump(agent.brain.model, open(
                         'data/lfa/save.p', 'wb'))
@@ -327,7 +326,7 @@ finally:
     reward_array = np.asarray(rewards)
     #episodes = np.arange(0, reward_array.size, 1)
     
-    RL_Algo.make_plot( reward_array, 'lfa',100)  
+    RL_Algo.make_plot( reward_array, 'lfa',100,save_array = True)  
     pickle.dump(agent.brain.model, open(
                         'data/lfa/save.p', 'wb'))
     print("-----------Finished Process----------")

@@ -33,9 +33,9 @@ DEPTH = 2
 STATE_CNT = (DEPTH, SIZE+2,SIZE+2)
 STATE_CNT_S = DEPTH * (SIZE+2)**2
 #STATE_CNT = 3
-ACTION_CNT = 3
+ACTION_CNT = 4
 
-RUN_TIME = 300 # changed to 30
+RUN_TIME = 30 # changed to 30
 THREADS = 8
 OPTIMIZERS = 2
 THREAD_DELAY = 0.001
@@ -334,5 +334,6 @@ for o in opts:
     o.join()
 
 print("Training finished")
-RL_Algo.make_plot( brain.rewards, 'a3c', 100)
+RL_Algo.make_plot( brain.rewards, 'a3c', 100,save_array = True)
+RL_Algo.save_model(brain.model, file = 'a3c', name = 'final')
 #env_test.run()

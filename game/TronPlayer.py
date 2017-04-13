@@ -154,12 +154,10 @@ class GreedyPlayer_Tron(TronPlayer):
                 map, (self.x, self.y), self.rotation)
         self.action = action
 
-
 class QLFAPlayer_Tron(TronPlayer):
 
     def init_algorithm(self):
         self.prepro = LFAPreprocessor(self.mapSize[0])
-        #self.models = pickle.load('data/lfa/model_end.pkl')
         with open('data/lfa/save.p', 'rb') as pickle_file:
             self.models = pickle.load(pickle_file)
         
@@ -174,7 +172,6 @@ class LFA_REI_Player_Tron(TronPlayer):
 
     def init_algorithm(self):
         self.prepro = LFAPreprocessor(self.mapSize[0])
-        #self.models = pickle.load('data/lfa/model_end.pkl')
         with open('data/lfa_rei/save.p', 'rb') as pickle_file:
             self.models = pickle.load(pickle_file)
         
@@ -212,33 +209,35 @@ class CNNPlayer_Tron(TronPlayer):
         s,_,_= self.prepro.cnn_preprocess_state(state)
         s = s.reshape(1,2, self.mapSize[0] + 2, self.mapSize[1] + 2)
         action = self.choose_action(s)
-        
         # action Label is in interval (0,2), but actual action is in interval
         # (-1,1)
-        self.action = action - 1
+        self.action = action
+        
 class DQNPlayer_Tron(CNNPlayer_Tron):
     def get_model(self):
         return "data/dqn/model.json"
     def load_cnn(self):
-        self.cnn.load_weights("data/dqn/model_3.h5")      
+        self.cnn.load_weights("data/dqn/model_final.h5")      
     def choose_action(self, s):
         values = self.cnn.predict(s).flatten()
-        print(values)
         return np.argmax(values.flatten())  # argmax(Q(s,a))
+    
 class REINFORCEPlayer_Tron(CNNPlayer_Tron):
     def get_model(self):
         return "data/reinforce/model.json"
     def load_cnn(self):
-        self.cnn.load_weights("data/reinforce/model_end.h5")      
+        self.cnn.load_weights("data/reinforce/model_11.0.h5")      
     def choose_action(self, s):
-        action_probs = self.cnn.predict_proba(s,verbose = 0).flatten()
-        return np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
+        values = self.cnn.predict(s).flatten()
+        return np.random.choice(np.arange(len(values)), p=values)
+        #return np.argmax(values.flatten())  # argmax(Q(s,a)
+        
 class A3CPlayer_Tron(CNNPlayer_Tron):
     def get_model(self):
-        return "data/reinforce/model.json"
+        return "data/a3c/model.json"
     def load_cnn(self):
-        self.cnn.load_weights("data/reinforce/model_end.h5")      
+        self.cnn.load_weights("data/a3c/model_final.h5")      
     def choose_action(self, s):
-        action_probs = self.cnn.predict_proba(s,verbose = 0).flatten()
-        return np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
-        
+        values = self.cnn.predict(s)[0].flatten()
+        return np.random.choice(np.arange(len(values)), p=values)
+        #return np.argmax(values.flatten())  # argmax(Q(s,a)
