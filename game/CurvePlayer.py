@@ -20,14 +20,21 @@ from keras.models import model_from_json
 import Greedy
 from Preprocessor import *
 
-
+""" Player Class for CurveFever """
 class CurvePlayer(object):
 
-    def __init__(self, mapSize, color,
-                 screenScale, control=None):
+    def __init__(self, mapSize, color, screenScale, control=None):
+        """ Initialize Player
+        Input: mapSize = Size of game Board
+        color = will be set as color for the player
+        screenscale = will be set as scale for the view of game window
+        (only used while rendering game)
+        conrtol = control settiings (only used for human players)
+         """
+                 
         # compute random spawning position
-        minWalldistY = mapSize[1] / 10
-        minWalldistX = mapSize[0] / 10
+        minWalldistY = int(mapSize[1] / 10)
+        minWalldistX = int(mapSize[0] / 10)
         rndy = random.randint(minWalldistY, mapSize[1] - minWalldistY)
         rndx = random.randint(minWalldistX, mapSize[0] - minWalldistX)
 
@@ -40,18 +47,20 @@ class CurvePlayer(object):
         self.y = rndy
         self.xdir = 0
         self.ydir = 0
-        self.rotation = random.randint(0, 360)
+
         self.speed = 0.7
         self.color = color
         self.action = 1
-        self.rotSpeed = 8
+        self.rotSpeed = 15
+        self.rotation = random.randint(0, 360/self.rotSpeed) * self.rotSpeed 
         self.alive = True
         self.mapSize = mapSize
         self.init_algorithm()
 
-    def pos_updated(self):
-        # Did the player change its position this step?
-        if (int(self.oldx) == int(self.x) and int(self.oldy) == int(self.y)):
+    def pos_updated(self,next_pos):
+        """ Returns if the player has changed his position in last step """
+        #if (int(self.oldx) == int(self.x) and int(self.oldy) == int(self.y)):
+        if (int(next_pos[0]) == int(self.x) and int(next_pos[1]) == int(self.y)):
             return False
         else:
             return True
@@ -59,22 +68,35 @@ class CurvePlayer(object):
     def lose(self):
         self.close()
 
-    def update(self):
-        # Update player position
+    def next_pos(self):
+        """ Computes next player position 
+        returns next player position as (x,y)
+        (doesn't set player position) """
         rotate = self.action - 1
         self.rotation = math.fmod(
-            self.rotation + rotate * self.rotSpeed, 360)
-        self.xdir = math.cos(math.radians(self.rotation))
-        self.ydir = math.sin(math.radians(self.rotation))
+            self.rotation + rotate * self.rotSpeed,360)
+        self.xdir = math.cos( math.radians(self.rotation))
+        self.ydir = math.sin( math.radians(self.rotation))
         self.oldx = self.x
         self.oldy = self.y
-        self.x += self.xdir * self.speed
-        self.y += self.ydir * self.speed
+        x = self.x + self.xdir * self.speed
+        y = self.y + self.ydir * self.speed
+        #print(x,y)
+        #if(x>21 or x < 0 or y>21 or y < 0):
+            #print("dead")
+        return (x,y)
         # self.path.append((int(self.x),int(self.y)))
 
+    def update(self):
+        """ Update player position """
+
+        self.x += self.xdir * self.speed
+        self.y += self.ydir * self.speed
+
     def draw(self, screen):
-        # render new player position on the screen
-        halfScale = self.screenScale / 2
+        """ draw new player position on the screen 
+        (only used while rendering) """
+        halfScale = int(self.screenScale / 2)
 
         x = int(self.x)
         y = int(self.y)
@@ -86,12 +108,17 @@ class CurvePlayer(object):
 
 
     def handle_input(self, event):
+        """ Chooses an Action considering input
+        (used by Human Players only ) """
         pass
 
     def do_action(self, action, a=None, b=None):
+        """ Chooses an action considering the action variable
+        (used for the algorithms) """
         pass
 
     def init_algorithm(self):
+        """ initialize agents in different ways """
         pass
 
 
@@ -112,13 +139,13 @@ class HumanPlayer(CurvePlayer):
 
     def handle_input(self, event):
         if event.type == pygame.KEYDOWN and event.key == self.actions["right"]:
-            self.rotate = 1
-        if event.type == pygame.KEYUP and event.key == self.actions["right"] and self.rotate == 1:
-            self.rotate = 0
+            self.action = 2
+        if event.type == pygame.KEYUP and event.key == self.actions["right"] and self.action == 2:
+            self.action = 1
         if event.type == pygame.KEYDOWN and event.key == self.actions["left"]:
-            self.rotate = -1
-        if event.type == pygame.KEYUP and event.key == self.actions["left"] and self.rotate == -1:
-            self.rotate = 0
+            self.action = 0
+        if event.type == pygame.KEYUP and event.key == self.actions["left"] and self.action == 0:
+            self.action = 1
 
 
 class GreedyPlayer(CurvePlayer):
@@ -138,24 +165,42 @@ class GreedyPlayer(CurvePlayer):
             #action = self.agent.maxdist_policy(map,  (self.x,self.y), self.rotation)
             action = self.agent.not_mindist_policy(
                 map, (self.x, self.y), self.rotation)
-        self.rotate = action
+        self.action = action
 
 
 class QLFAPlayer(CurvePlayer):
 
     def init_algorithm(self):
         self.prepro = LFAPreprocessor(self.mapSize[0])
-        self.models = joblib.load('data/lfa/model_end.pkl')
-        
-    def do_action(self, game_state):    
+        with open('data/lfa/save.p', 'rb') as pickle_file:
+            self.models = pickle.load(pickle_file)
+
+    def do_action(self, game_state):
         state, _, _ = self.prepro.lfa_preprocess_state_2(game_state)
-        a = np.array([m.predict([state])[0] for m in self.models])
-        print(a)
-        self.rotate = np.argmax(a) - 1
+        #a = np.array([m.predict([state])[0] for m in self.models])
+        a = np.array([np.inner(m, state) for m in self.models])
+        # print(np.argmax(a))
+        self.action = np.argmax(a)
+
+
+class LFA_REI_Player(CurvePlayer):
+
+    def init_algorithm(self):
+        self.prepro = LFAPreprocessor(self.mapSize[0])
+        with open('data/lfa_rei/save.p', 'rb') as pickle_file:
+            self.models = pickle.load(pickle_file)
+
+    def do_action(self, game_state):
+        state, _, _ = self.prepro.lfa_preprocess_state_feat(game_state)
+        #a = np.array([m.predict([state])[0] for m in self.models])
+        a = np.array([np.inner(m, state) for m in self.models])
+        self.action = np.argmax(a)
+
+        #self.action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
 
 
 class CNNPlayer(CurvePlayer):
-    
+
     def init_algorithm(self):
         # returns a compiled model
         # identical to the previous one
@@ -163,7 +208,7 @@ class CNNPlayer(CurvePlayer):
         opt = RMSprop(lr=0.00025)
         #self.dqn=load_model('save_1.h5', custom_objects={'hubert_loss': hubert_loss,'opt': opt })
         self.stateCnt = (2, self.mapSize[0] + 2, self.mapSize[1] + 2)
-        self.prepro =CNNPreprocessor(self.stateCnt)
+        self.prepro = CNNPreprocessor(self.stateCnt)
 
         # load json and create model
         json_file = open(self.get_model(), 'r')
@@ -174,30 +219,53 @@ class CNNPlayer(CurvePlayer):
         self.load_cnn()
         self.cnn.compile(loss=self.prepro.hubert_loss, optimizer=opt)
         print("Loaded model from disk")
-        
+
     def do_action(self, state):
-        s,_,_= self.prepro.cnn_preprocess_state(state)
-        s = s.reshape(1,2, self.mapSize[0] + 2, self.mapSize[1] + 2)
+        s, _, _ = self.prepro.cnn_preprocess_state(state)
+        s = s.reshape(1, 2, self.mapSize[0] + 2, self.mapSize[1] + 2)
         action = self.choose_action(s)
-        
         # action Label is in interval (0,2), but actual action is in interval
         # (-1,1)
-        self.rotate = action - 1
+        self.action = action
+
+
 class DQNPlayer(CNNPlayer):
     def get_model(self):
         return "data/dqn/model.json"
+
     def load_cnn(self):
-        self.cnn.load_weights("data/dqn/model_3.h5")      
+        self.cnn.load_weights("data/dqn/model_final.h5")
+
     def choose_action(self, s):
         values = self.cnn.predict(s).flatten()
-        print(values)
         return np.argmax(values.flatten())  # argmax(Q(s,a))
+
+
 class REINFORCEPlayer(CNNPlayer):
     def get_model(self):
         return "data/reinforce/model.json"
+
     def load_cnn(self):
-        self.cnn.load_weights("data/reinforce/model_end.h5")      
+        self.cnn.load_weights("data/reinforce/model_13.0.h5")
+
     def choose_action(self, s):
-        action_probs = self.cnn.predict_proba(s,verbose = 0).flatten()
-        return np.random.choice(np.arange(len(action_probs)), p=action_probs) # sample action from probabilities
-        
+        values = self.cnn.predict(s).flatten()
+        return np.random.choice(np.arange(len(values)), p=values)
+        # return np.argmax(values.flatten())  # argmax(Q(s,a)
+
+
+class A3CPlayer(CNNPlayer):
+    def get_model(self):
+        return "data/a3c/model.json"
+
+    def load_cnn(self):
+        self.cnn.load_weights("data/a3c/model_final.h5")
+
+    def choose_action(self, s):
+        values = self.cnn.predict(s)[0].flatten()              
+        #eps = 0.2
+        #if random.random() < eps:
+        #    return random.randint(0, 2)
+        #else: return np.random.choice(np.arange(len(values)), p=values)
+        return np.random.choice(np.arange(len(values)), p=values)
+        # return np.argmax(values.flatten())  # argmax(Q(s,a)

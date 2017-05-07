@@ -18,11 +18,13 @@ from Preprocessor import LFAPreprocessor
 import RL_Algo
 import pickle
 
-""" Q-Learning mit Linearer Funktionsannaeherung und den Ideen des DQN"""
+""" Q-Learning with linear Function Approximation and the ideas of DQN """
+
+""" Hyperparameters """
 
 SIZE = 20
 #STATE_CNT = (2 + (SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
-STATE_CNT = 3
+STATE_CNT = 4
 ACTION_CNT = 4  # left, right, straight
 
 MEMORY_CAPACITY = 300  # change to 500 000 (1 000 000 in original paper)
@@ -43,18 +45,21 @@ UPDATE_TARGET_FREQUENCY = 10000
 SAVE_XTH_GAME = 1000  # all x games, save the CNN
 LEARNING_FRAMES = 1000000
 
-ALPHA = 0.0000002
+#ALPHA = 0.0000002
+ALPHA = 0.0001
 
 #-------------------- BRAIN ---------------------------
-
+""" Class that contains the Linear Function Aproximator (LFA) and the functions to use and modify it """
 
 class Brain:
 
     def __init__(self):
+        """ Output: 2 LFAs
+            1. Q-Learning LFA
+            2. Target LFA """
 
-        # We create a separate model for each action in the environment's
-        # action space. Alternatively we could somehow encode the action
-        # into the features, but this way it's easier to code up.
+        # separate model for each action in the environment's action space.
+        
         self.model = []
         
         for _ in range(ACTION_CNT):
@@ -63,9 +68,11 @@ class Brain:
             
         self.updateTargetModel()
 
-    def train(self, x, y, a,errors, epoch=1, verbose=0): # real train method! current is only for testing
-        state = [[], [], [], []] # to change when actionCnt changes !!!!!!!!!!!!!!!!!!!!!!
-        target = [[], [], [],[]]
+    def train(self, x, y, a,errors, epoch=1, verbose=0):
+        """ Trains the LFA with given batch of (x,y,a,error) tuples
+        Perform one parameter update for whole Batch """
+        state = [[], [], []] # to change when actionCnt changes!
+        target = [[], [], []]
         batch_size = a.size # could also use any other given variable .size
         for i in range(batch_size):
             action = int(a[i])
@@ -75,20 +82,25 @@ class Brain:
             if(state[act] != []):
                 states = np.array(state[act])
                 targets = np.hstack(np.array(target[act]))
-                delta = ALPHA *  np.dot(targets , states)
+                # formula for parameter update (gradient descent) in q-learning:
+                delta = ALPHA *  np.dot(targets , states) 
                 self.model[act] = self.model[act] + delta
                 
     def train_small(self, x, y, a,errors, epoch=1, verbose=0):
+        """ Trains the LFA with given (x,y,a, error) tuples
+        Perform one parameter update for one tuple """
         act = int(a[0])
+        # formula for parameter update (gradient descent) in q-learning:
         self.model[act] = self.model[act] + ALPHA * errors[0] * x[0] 
 
     def predict(self, s, target=False):
-        # sometimes scalars instead of  [a b] arrays
+        
+        """ Predicts Output of the LFA for given batch of input states s 
+        Uses either the normal or the target LFA """
+
         batch_size = int(np.array(s).size / STATE_CNT)
         pred = np.zeros((batch_size, ACTION_CNT))
-        # s[0] ist das 0te state-tupel, und pred[0] das 0te tupel von predictions
-        # bei m.predict(s)[0]  braucht man die [0] um das Ergebnis, dass ein
-        # array ist in ein skalar umzuwandeln
+
         if target:
 
             for i in range(batch_size):
@@ -104,12 +116,13 @@ class Brain:
         return pred
 
     def updateTargetModel(self):
-        # self.model_.set_weights(self.model.get_weights())
+
         a = copy.copy(self.model)
         self.model_ = a
 
 
 #-------------------- MEMORY --------------------------
+"""Class to store the Experience, created by the simulation """
 class Memory:   # stored as ( s, a, r, s_ ) in SumTree
     e = 0.01  # epsilon
     a = 0.6  # alpha
@@ -125,12 +138,20 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
         return (error + self.e) ** self.a
 
     def add(self, error, sample):  # new Sample
+        """ adds new Sample to memory
+            Input:
+                error: TD-Error and priority of the sample
+                sample: (s,a,r,s') Tuple """
         p = self._getPriority(error)
         self.tree.add(p, sample)
 
     def sample(self, n):
-
-        # n = amount of samples in batch
+        
+        """ computes a batch of random stored samples
+        (Priorized Experience Replay)
+        Input:
+        n = amount of samples in batch """
+        
         batch = []
         segment = self.tree.total() / n
 
@@ -140,16 +161,19 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
 
             s = random.uniform(a, b)
             (idx, p, data) = self.tree.get(s)  # get with O(log n)
+            print(idx)
             batch.append((idx, data))
 
         return batch
 
-    def update(self, idx, error):  # Update Priority of a sample
+    def update(self, idx, error):
+        """ Update Priority of a sample """
         p = self._getPriority(error)
         self.tree.update(idx, p)
 
         #-------------------- AGENT ---------------------------
-
+""" The Agent doing simulations in the environment,
+ having a Brain a Memory and tries to learn """
 
 class Agent:
     steps = 0
@@ -160,14 +184,18 @@ class Agent:
         self.brain = Brain()
         self.memory = Memory(MEMORY_CAPACITY)
 
-    def act(self, s):  # epsilon-greedy policy
+    def act(self, s):
+        """ choose action to take
+        with epsilon-greedy policy"""
         if random.random() < self.epsilon:
             return random.randint(0, ACTION_CNT - 1)
         else:
             return np.argmax(self.brain.predict([s]))
 
     def observe(self, sample):  # in (s, a, r, s_) format
-
+        """ observes new sample 
+         sample in (s, a, r, s_) format """
+         
         _,_,_,error = self._getTargets([(0, sample)])
         self.memory.add(error, sample)
 
@@ -181,7 +209,12 @@ class Agent:
 
 
     def _getTargets(self, batch):
-        # Computes (Input, Output, Error) tuples -->Q-Learning happens here
+        """ Computes TD-Error to batch of samples
+        Q-Learning happens here
+        Input:
+            batch of (s,a,r,s') tuples
+        Output:  
+            (Input, Output, Error) tuples """
         no_state = np.zeros(STATE_CNT)
 
         states = np.array([o[1][0] for o in batch])  # stores all states
@@ -217,10 +250,10 @@ class Agent:
             y[i] = t
             z[i] = a
             errors[i] =  t[a] - oldVal
-
+            print(errors[i])
         return (x, y, z, errors)
     def replay(self):
-        # Update Tuples and Errors, than train the SGD Regressor
+        """ Update Tuples and Errors, then train the LFA """
         batch = self.memory.sample(BATCH_SIZE)
         x, y, a, errors = self._getTargets(batch)
         # update errors
@@ -228,12 +261,13 @@ class Agent:
         for i in range(len(batch)):
             idx = batch[i][0]
             self.memory.update(idx, abs_err[i])
-        self.brain.train(x, y, a, errors)
+            self.brain.train_small(x, y, a, errors)
+        #self.brain.train(x, y, a, errors)
 
 
-class RandomAgent:  # Takes Random Action
-    # Takes Random Action
-    # will be used to fill memory in the beginning
+class RandomAgent:
+    """ Agent that Takes Random Action 
+    is used to fill memory in the beginning """
     memory = Memory(MEMORY_CAPACITY)
     exp = 0
 
@@ -253,6 +287,7 @@ class RandomAgent:  # Takes Random Action
 
 
 #-------------------- ENVIRONMENT ---------------------
+""" The interface between the agent and the game environment """
 class Environment:
 
     def __init__(self):
@@ -261,10 +296,10 @@ class Environment:
         
     def run(self, agent):
 
-        # run one episode of the game, store the states and replay them every
-        # step
+        """ run one episode of the game, store the states and replay them every
+         step """
         self.game.init(render = False)
-        state, reward, done = self.pre.lfa_preprocess_state_2(self.game.AI_learn_step())  # 1st frame no action
+        state, _,_= self.pre.lfa_preprocess_state_2(self.game.get_game_state())  # 1st frame no action
         R = 0
 
         while True:
@@ -286,6 +321,8 @@ class Environment:
         return R
 #-------------------- MAIN ----------------------------
 
+""" Run Everything, and save models afterwards
+First get a full Memory with the Random Agent then use the normal Agent to to Q-Learning """
 env = Environment()
 agent = Agent()
 randomAgent = RandomAgent()
@@ -301,7 +338,7 @@ try:
 
     randomAgent = None
 
-    print("Starting learning")
+    print("-------Starting learning-------")
     frame_count = 0
     episode_count = 0
     

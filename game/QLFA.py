@@ -13,12 +13,13 @@ import math
 import pygame
 from CurveFever import Learn_SinglePlayer
 import RL_Algo
+from Preprocessor import LFAPreprocessor
 
 """ klassisches Q-Learning mit Linearer Funktionsannaeherung """
 
 # HYPER-PARAMETERS
-STATE_CNT = 3
-ACTION_CNT = 4  # left, right, straight
+STATE_CNT = 4
+ACTION_CNT = 3  # left, right, straight
 
 NUM_EPISODES = 1000000
 
@@ -35,33 +36,17 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 #------------------------------------------------------------------
 
-
-def preprocess_state(only_state=True):
-
-    state = game.AI_learn_step()
-    p = state["playerPos"]
-    dx = 10 - p[0]
-    dy = 10 - p[1]
-    abss =  math.sqrt((dx**2)+(dy**2))
-    features = np.array([abss, dy, dx])
-    if only_state:
-        return features
-    else:
-        return features, state["reward"], state["done"]
-
-
-# init Game Environment
-game = Learn_SinglePlayer()
-game.first_init()
+game = RL_Algo.init_game()
+pre = LFAPreprocessor(STATE_CNT)
 game.init(render=False)
-state = preprocess_state()
+state, _,_ = pre.lfa_preprocess_state_2(game.AI_learn_step())
 
 #------------------------------------------------------------------
 
 
 class Estimator():
     """
-    Value Function approximator. 
+    Value Function approximator.
     """
 
     def __init__(self, init_state):
@@ -90,19 +75,18 @@ class Estimator():
 
         """
         if not a:
-            return np.array([ np.inner(m,s) for m in self.models])
+            return np.array([np.inner(m, s) for m in self.models])
         else:
-            return np.inner(self.models[a],s)
-
+            return np.inner(self.models[a], s)
 
     def update(self, s, a, y):
         """
         Updates the estimator parameters for a given state and action towards
         the target y.
-        """ 
-        #print(self.models)
+        """
+        # print(self.models)
         self.models[a] = self.models[a] + ALPHA * y * s
-        #print(self.models[a]) 
+        # print(self.models[a])
 
 
 #------------------------------------------------------------------
@@ -126,7 +110,7 @@ def make_epsilon_greedy_policy(estimator, epsilon, nA):
         q_values = estimator.predict(observation)
         best_action = np.argmax(q_values)
         val = q_values[best_action]
-        #print(val)
+        # print(val)
         A[best_action] += (1.0 - epsilon)
         return A, val
     return policy_fn
@@ -171,8 +155,8 @@ def q_learning(game, estimator):
         # sys.stdout.flush()
 
         # Reset the environment and pick the first action
-        game.init(render = False)
-        state = preprocess_state()
+        game.init(render=False)
+        state,_,_ = pre.lfa_preprocess_state_2(game.AI_learn_step())
         # One step in the environment
         for t in itertools.count():
 
@@ -183,7 +167,7 @@ def q_learning(game, estimator):
             # converts interval (0,2) to (-1,1)
             game.player_1.action = action
             # Take a step
-            next_state, reward, done = preprocess_state(only_state=False)
+            next_state, reward, done = pre.lfa_preprocess_state_2(game.AI_learn_step())
 
             # Update statistics
             #stats.episode_rewards[i_episode] += reward
@@ -191,17 +175,17 @@ def q_learning(game, estimator):
 
             # TD Update
             q_values_next = estimator.predict(next_state)
-            #print(q_values_next)
+            # print(q_values_next)
 
             # Use this code for Q-Learning
             # Q-Value TD Target
-            if not done:  
+            if not done:
                 td_target = reward + GAMMA * np.max(q_values_next)
 
             else:
                 td_target = reward
 
-            td_error = ( td_target - old_val)
+            td_error = (td_target - old_val)
             # print(q_values_next)
             # Update the function approximator using our target
 
@@ -212,14 +196,15 @@ def q_learning(game, estimator):
                 if i_episode % 10000 == 0:
                     pickle.dump(estimator.models, open(
                         'data/lfa/save.p', 'wb'))
-                    RL_Algo.make_plot( rewards, 'lfa', 100,save_array = True)  
-  
+                    RL_Algo.make_plot(rewards, 'lfa', 100, save_array=True)
+
                 break
 
             state = next_state
 
     return stats
 #------------------------------------------------------------------
+
 
 game = RL_Algo.init_game()
 estimator = Estimator(state)

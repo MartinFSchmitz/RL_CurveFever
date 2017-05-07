@@ -21,12 +21,12 @@ class Map(object):
 
     def has_collision(self,playerPos):
         # tests if a player has a collision with anything
-        if (self.map[(int(playerPos[0])+1,int(playerPos[1])+1)]==1): 
+        if (self.map[(int(playerPos[1]),int(playerPos[0]))]==1): 
             return True
         else: 
             return False
             
     def update(self, playerPos):
         # update the environment
-        coords = (int(playerPos[0])+1,int(playerPos[1])+1)
+        coords = (int(playerPos[1]),int(playerPos[0]))
         self.map[coords]=1

@@ -4,61 +4,30 @@ Created on Mar 8, 2017
 @author: marti
 '''
 
-from keras.models import Sequential
-from keras.layers import *
-from keras.optimizers import *
+import numpy as np
 import random
 from CurveFever import Learn_SinglePlayer
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
-#------------------------------------------------------------------
-def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
-    err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
-    #self.test = False
-    return K.mean( K.sqrt(1+K.square(err))-1, axis=-1 )
 
-class Brain:
-
-    def _createModel(self,input, output, act_fun): # Creating a CNN
-        self.state_Cnt = input
-        
-        model = Sequential()
-        # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
-        #relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
-    
-        model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(input),dim_ordering='th'))    
-        #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
-        model.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(input),dim_ordering='th'))
-        model.add(Flatten())
-        model.add(Dense(output_dim=256, activation='relu'))
-    
-        model.add(Dense(output_dim=output, activation=act_fun))
-    
-        opt = RMSprop(lr=0.00025) #RMSprob is a popular adaptive learning rate method 
-        model.compile(loss='mse', optimizer=opt)
-        return model
-    
-    def predictOne(self, s, target = False):
-        state =s.reshape(1, self.state_Cnt[0], self.state_Cnt[1], self.state_Cnt[2])
-        return self.predict(state, target).flatten()
-    
 #------------------------------------------------------------------
 def get_random_equal_state(sample):
 
-    # Gets one random of the 8 equivalent mirrored and rotated states, to
-    # the current state
+    """ Gets one random state of the 8 equivalent mirrored and rotated states, to
+    the current state """
     s, a, r, s_ = sample
     rnd = random.randint(0, 7)
-
+    """ note: only for curve so far """
     if (rnd % 2 == 1):
         s = np.fliplr(s)
         s_ = np.fliplr(s_)
         a = -1*(a-1)+1 # mirror a, too
     rotate = rnd / 2
     if (rotate < 0):
-        #for i in xrange(STATE_CNT[0]):  # Maps einzeln rotieren
+        # Maps einzeln rotieren
+        #for i in range(STATE_CNT[0]):  
             #s[i] = np.rot90(s[i], rotate)
             #s_[i] = np.rot90(s[i], rotate)
             
@@ -70,14 +39,14 @@ def get_random_equal_state(sample):
     return (s,a,r,s_)
 #------------------------------------------------------------------  
 def init_game():
-        # init Game Environment
+    """ init Game Environment """
     game = Learn_SinglePlayer()
     game.first_init()
     game.init( render = False)
     return game
 
 def save_model(model, file, name):
-    # serialize weights to HDF5
+    """saves model structure to json and weights to h5 file """
     model.save_weights(
     "data/" + file + "/model_" + name + ".h5")
     print("Saved model " + name + " to disk")
@@ -88,6 +57,16 @@ def save_model(model, file, name):
             json_file.write(model_json)
 
 def make_plot(x, name, step, save_array = False):
+    """ creates and saves plot of given arrays of rewards
+    Input:
+    x: array with values
+    name: name of directory and file name
+    step: steps of the regression curve 
+    save_array: bool if the array should be saved
+    Output:
+    Saved Plot
+    (if save_array): Saved array of values """
+    
     if ( save_array == True):
         pickle.dump(np.asarray(x), open(
         'data/'+ name +'/'+'reward_array'+'.p', 'wb'))
@@ -103,7 +82,7 @@ def make_plot(x, name, step, save_array = False):
     reward_step_array = np.asarray(step_x)   
     episodes_step = np.arange(step/2, reward_array.size-step/2 , step)    
      
-    plt.plot( episodes,reward_array,linewidth=0.2,color='g')
+    plt.plot( episodes,reward_array,linewidth=0.1,color='g')
     plt.plot(episodes_step,reward_step_array,linewidth=1.5,color = 'r')
 
     plt.xlabel('Number of episode')
