@@ -24,7 +24,7 @@ from keras.optimizers import *
 
 """ Hypertparameters """
 
-SIZE = 20
+SIZE = 60
 DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
@@ -47,6 +47,8 @@ UPDATE_TARGET_FREQUENCY = 10000
 SAVE_XTH_GAME = 10000  # all x games, save the CNN
 LEARNING_FRAMES = 50000000  # 50mio
 LEARNING_EPISODES = 100000
+
+FRAMESKIPPING = 4
 
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
@@ -299,21 +301,25 @@ class Environment:
         state, reward, done = self.pre.cnn_preprocess_state(
             self.game.get_game_state())
         R = 0
+        n = 0
         while True:
             # one step of game emulation
+            #if n%FRAMESKIPPING == 0:
             action = agent.act(state)  # agent decides an action
             self.game.player_1.action = action
             next_state, reward, done = self.pre.cnn_preprocess_state(
-                self.game.AI_learn_step())
+                    self.game.AI_learn_step())
             if done:  # terminal state
                 #reward = 0
                 next_state = None
             # agent adds the new sample
+            #if n%FRAMESKIPPING == 0:
             agent.observe((state, action, reward, next_state))
             #[agent.replay() for _ in xrange (8)] #we make 8 steps because we have 8 new states
             agent.replay()
             state = next_state
             R += reward
+            n += 1
             #print("frame:", "reward:" , reward, "action:" , self.game.player_1.action, "done" , done  )
             if done:  # terminal state
                 break
