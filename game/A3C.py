@@ -37,7 +37,7 @@ STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 #STATE_CNT = 3
 ACTION_CNT = 4
 
-RUN_TIME = 1 * 30  # changed to 30
+RUN_TIME = 60 * 60 * 36  # changed to 30
 THREADS = 8
 OPTIMIZERS = 3
 THREAD_DELAY = 0.001

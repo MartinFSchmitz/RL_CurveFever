@@ -44,9 +44,9 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 1000  # all x games, save the CNN
+SAVE_XTH_GAME = 10000  # all x games, save the CNN
 LEARNING_FRAMES = 50000000  # 50mio
-LEARNING_EPISODES = 10000
+LEARNING_EPISODES = 100000
 
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
