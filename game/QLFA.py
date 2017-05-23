@@ -19,16 +19,16 @@ from Preprocessor import LFAPreprocessor
 
 # HYPER-PARAMETERS
 STATE_CNT = 4
-ACTION_CNT = 3  # left, right, straight
+ACTION_CNT = 4  # left, right, straight
 
-NUM_EPISODES = 1000000
+NUM_EPISODES = 20000
 
 GAMMA = 0.99
 EPSILON = 0.1,
 EPSILON_DECAY = 1.0
 MAX_EPSILON = 1
 MIN_EPSILON = 0.1
-ALPHA = 0.008
+ALPHA = 0.05
 
 # at this step epsilon will be 0.1  (1 000 000 in original paper)
 EXPLORATION_STOP = 10000
@@ -39,8 +39,10 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 game = RL_Algo.init_game()
 pre = LFAPreprocessor(STATE_CNT)
 game.init(render=False)
-state, _,_ = pre.lfa_preprocess_state_2(game.AI_learn_step())
+state, _,_ = pre.lfa_preprocess_state_feat(game.AI_learn_step())
 
+# Hack to not always set STATE_CNT manually
+STATE_CNT = len(pre.lfa_preprocess_state_feat( game.get_game_state())[0])
 #------------------------------------------------------------------
 
 
@@ -156,7 +158,7 @@ def q_learning(game, estimator):
 
         # Reset the environment and pick the first action
         game.init(render=False)
-        state,_,_ = pre.lfa_preprocess_state_2(game.AI_learn_step())
+        state,_,_ = pre.lfa_preprocess_state_feat(game.AI_learn_step())
         # One step in the environment
         for t in itertools.count():
 
@@ -167,7 +169,7 @@ def q_learning(game, estimator):
             # converts interval (0,2) to (-1,1)
             game.player_1.action = action
             # Take a step
-            next_state, reward, done = pre.lfa_preprocess_state_2(game.AI_learn_step())
+            next_state, reward, done = pre.lfa_preprocess_state_feat(game.AI_learn_step())
 
             # Update statistics
             #stats.episode_rewards[i_episode] += reward
@@ -193,7 +195,7 @@ def q_learning(game, estimator):
             if done:
                 print("done episode: ", i_episode, "time:", t)
                 rewards.append(t)
-                if i_episode % 10000 == 0:
+                if i_episode % 5000 == 0:
                     pickle.dump(estimator.models, open(
                         'data/lfa/save.p', 'wb'))
                     RL_Algo.make_plot(rewards, 'lfa', 100, save_array=True)
@@ -201,7 +203,9 @@ def q_learning(game, estimator):
                 break
 
             state = next_state
-
+    pickle.dump(estimator.models, open(
+                        'data/lfa/save.p', 'wb'))
+    RL_Algo.make_plot(rewards, 'lfa', 100, save_array=True)
     return stats
 #------------------------------------------------------------------
 

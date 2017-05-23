@@ -20,6 +20,7 @@ import tensorflow as tf
 
 from Preprocessor import CNNPreprocessor
 import matplotlib
+#from game.LFA_REINFORCE import LEARNING_EPISODES
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import RL_Algo
@@ -32,13 +33,13 @@ import copy
 """ HYPER PARAMETERS """
 LEARNING_RATE = 1.5e-4 #5e-4
 GAMMA = 0.99
-LEARNING_FRAMES = 100000000
-SAVE_XTH_GAME = 3000
-SIZE = 20
-DEPTH = 2
+LEARNING_FRAMES = 10000000
+LEARNING_EPISODES = 1000
+SAVE_XTH_GAME = 100
+SIZE = 60
+DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
-
 
 #-------------------- BRAINS ---------------------------
 """ Class that contains the CNN for the Policy (containing a Keras CNN model combined with a tensorflow graph)
@@ -67,9 +68,9 @@ class Policy_Brain():
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        l_conv_1 = Conv2D(32, (6, 6), strides=(2,2),data_format = "channels_first", activation='relu')(l_input) #8,8 4,4 original
+        l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input) #8,8 4,4 original
         l_conv_2 = Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1) #8,8 4,4 original
-        l_conv_3 = Conv2D(32, (2, 2), data_format = "channels_first", activation='relu')(l_conv_2)
+        l_conv_3 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_2)
 
         #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
 
@@ -283,7 +284,6 @@ class Environment:
 
             # Keep track of the transition
             state = state.reshape(1, STATE_CNT[0], STATE_CNT[1], STATE_CNT[2])
-
             states.append(state)
             y = np.zeros([ACTION_CNT])
             y[action] = 1
@@ -312,16 +312,17 @@ rewards = []
 try:
     print("Start REINFORCE Learning process...")
 
-    frame_count = 0
+    #frame_count = 0
     episode_count = 0
 
     while True:
-        if frame_count >= LEARNING_FRAMES:
+        if episode_count >= LEARNING_EPISODES:
             break
         episode_reward = env.run(agent)
-        frame_count += episode_reward
+        #frame_count += episode_reward
         rewards.append(episode_reward)
         episode_count += 1
+        
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
 
             save_counter = episode_count / SAVE_XTH_GAME
@@ -331,12 +332,11 @@ try:
                 agent.policy_brain.model,
                 file='reinforce',
                 name=str(save_counter))
-
+        
 finally:
         # make plot
-    reward_array = np.asarray(rewards)
-    episodes = np.arange(0, reward_array.size, 1)
-    RL_Algo.make_plot(episodes, 'reinforce', 100, save_array=True)
+
+    RL_Algo.make_plot(rewards, 'reinforce', 100, save_array=True)
 
     RL_Algo.save_model(
         agent.policy_brain.model,

@@ -30,8 +30,8 @@ import RL_Algo
 
 #-- constants
 
-SIZE = 20
-DEPTH = 2
+SIZE = 60
+DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 
 #STATE_CNT = 3
@@ -39,7 +39,7 @@ ACTION_CNT = 4
 
 RUN_TIME = 1 * 30  # changed to 30
 THREADS = 8
-OPTIMIZERS = 2
+OPTIMIZERS = 3
 THREAD_DELAY = 0.001
 
 GAMMA = 0.99
@@ -52,7 +52,7 @@ EPS_STOP = .15
 EPS_STEPS = 75000
 
 MIN_BATCH = 32
-LEARNING_RATE = 5e-3  # eig -4
+LEARNING_RATE = 3e-3  # eig 5e-4
 
 LOSS_V = .5            # v loss coefficient
 LOSS_ENTROPY = .01     # entropy coefficient
@@ -91,8 +91,8 @@ class Brain:
                 STATE_CNT[1],
                 STATE_CNT[2]))
         l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
-        #l_conv_2 = Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1)
-        l_conv_3 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
+        l_conv_2 = Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1)
+        l_conv_3 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_2)
         #model.add()
 
         # print(l_input)

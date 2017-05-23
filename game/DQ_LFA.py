@@ -27,7 +27,7 @@ SIZE = 20
 STATE_CNT = 4
 ACTION_CNT = 4  # left, right, straight
 
-MEMORY_CAPACITY = 300  # change to 500 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 300000  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -44,9 +44,15 @@ UPDATE_TARGET_FREQUENCY = 10000
 
 SAVE_XTH_GAME = 1000  # all x games, save the CNN
 LEARNING_FRAMES = 1000000
+LEARNING_EPISODES = 30000
 
-#ALPHA = 0.0000002
-ALPHA = 0.0001
+ALPHA = 0.005  #0.0005 # dont change
+
+game = RL_Algo.init_game()
+pre = LFAPreprocessor(SIZE)
+# Hack to not always set STATE_CNT manually
+STATE_CNT = len(pre.lfa_preprocess_state_feat( game.get_game_state())[0])
+
 
 #-------------------- BRAIN ---------------------------
 """ Class that contains the Linear Function Aproximator (LFA) and the functions to use and modify it """
@@ -71,8 +77,8 @@ class Brain:
     def train(self, x, y, a,errors, epoch=1, verbose=0):
         """ Trains the LFA with given batch of (x,y,a,error) tuples
         Perform one parameter update for whole Batch """
-        state = [[], [], []] # to change when actionCnt changes!
-        target = [[], [], []]
+        state = [[], [], [],[]] # to change when actionCnt changes!
+        target = [[], [], [],[]]
         batch_size = a.size # could also use any other given variable .size
         for i in range(batch_size):
             action = int(a[i])
@@ -161,7 +167,7 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
 
             s = random.uniform(a, b)
             (idx, p, data) = self.tree.get(s)  # get with O(log n)
-            print(idx)
+            #print(idx)
             batch.append((idx, data))
 
         return batch
@@ -250,7 +256,7 @@ class Agent:
             y[i] = t
             z[i] = a
             errors[i] =  t[a] - oldVal
-            print(errors[i])
+            #print(errors[i])
         return (x, y, z, errors)
     def replay(self):
         """ Update Tuples and Errors, then train the LFA """
@@ -299,7 +305,7 @@ class Environment:
         """ run one episode of the game, store the states and replay them every
          step """
         self.game.init(render = False)
-        state, _,_= self.pre.lfa_preprocess_state_2(self.game.get_game_state())  # 1st frame no action
+        state, _,_= self.pre.lfa_preprocess_state_feat(self.game.get_game_state())  # 1st frame no action
         R = 0
 
         while True:
@@ -307,7 +313,7 @@ class Environment:
             action = agent.act(state)  # agent decides an action
             # converts interval (0,2) to (-1,1)
             self.game.player_1.action = action
-            next_state, reward, done = self.pre.lfa_preprocess_state_2(self.game.AI_learn_step())
+            next_state, reward, done = self.pre.lfa_preprocess_state_feat(self.game.AI_learn_step())
             if done: # terminal state
                 reward = 0
                 next_state = None
@@ -339,14 +345,14 @@ try:
     randomAgent = None
 
     print("-------Starting learning-------")
-    frame_count = 0
+    #frame_count = 0
     episode_count = 0
     
     while True:
-        if frame_count >= LEARNING_FRAMES:
+        if episode_count >= LEARNING_EPISODES:
             break
         episode_reward = env.run(agent)
-        frame_count += episode_reward
+        #frame_count += episode_reward
         rewards.append(episode_reward)
 
         episode_count += 1
@@ -359,11 +365,9 @@ try:
                         'data/lfa/save.p', 'wb'))
     
 finally:
-    # make plot
-    reward_array = np.asarray(rewards)
-    #episodes = np.arange(0, reward_array.size, 1)
     
-    RL_Algo.make_plot( reward_array, 'lfa',100,save_array = True)  
+    # make plot
+    RL_Algo.make_plot( rewards, 'lfa',100,save_array = True)  
     pickle.dump(agent.brain.model, open(
                         'data/lfa/save.p', 'wb'))
     print("-----------Finished Process----------")

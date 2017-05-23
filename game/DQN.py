@@ -25,7 +25,7 @@ from keras.optimizers import *
 """ Hypertparameters """
 
 SIZE = 20
-DEPTH = 2
+DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
 
@@ -44,9 +44,9 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 5000  # all x games, save the CNN
+SAVE_XTH_GAME = 1000  # all x games, save the CNN
 LEARNING_FRAMES = 50000000  # 50mio
-
+LEARNING_EPISODES = 10000
 
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
@@ -75,9 +75,14 @@ class DQN_Brain():
         # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
         #relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
     
-        model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(input),dim_ordering='th'))    
+        #model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(input),dim_ordering='th'))    
         #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
-        model.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(input),dim_ordering='th'))
+        #model.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(input),dim_ordering='th'))
+        
+        model.add(Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(input)))    
+        model.add(Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu'))
+        model.add(Conv2D(64, (3, 3), data_format = "channels_first", activation='relu'))
+                  
         model.add(Flatten())
         model.add(Dense(output_dim=256, activation='relu'))
     
@@ -93,7 +98,7 @@ class DQN_Brain():
         # nb_epoch = number of the epoch,
         # verbose: 0 for no logging to stdout, 1 for progress bar logging, 2
         # for one log line per epoch.
-        self.model.fit(x, y, batch_size=32, nb_epoch=epoch, verbose=verbose)
+        self.model.fit(x, y, batch_size=32, epochs=epoch, verbose=verbose)
 
     def predict(self, s, target=False):
         """ Predicts Output of the Neural Network for given batch of input states s 
@@ -301,7 +306,7 @@ class Environment:
             next_state, reward, done = self.pre.cnn_preprocess_state(
                 self.game.AI_learn_step())
             if done:  # terminal state
-                reward = 0
+                #reward = 0
                 next_state = None
             # agent adds the new sample
             agent.observe((state, action, reward, next_state))
@@ -337,14 +342,14 @@ try:
     randomAgent = None
 
     print("Starting learning")
-    frame_count = 0
+    #frame_count = 0
     episode_count = 0
 
     while True:
-        if frame_count >= LEARNING_FRAMES:
+        if episode_count >= LEARNING_EPISODES:
             break
         episode_reward = env.run(agent)
-        frame_count += episode_reward
+        #frame_count += episode_reward
         rewards.append(episode_reward)
 
         episode_count += 1
@@ -360,9 +365,6 @@ try:
 
 finally:
     # make plot
-    reward_array = np.asarray(rewards)
-    episodes = np.arange(0, reward_array.size, 1)
-
-    RL_Algo.make_plot(reward_array, 'dqn', 100)
+    RL_Algo.make_plot(rewards, 'dqn', 100)
     RL_Algo.save_model(agent.brain.model, file='dqn', name='final')
     print("-----------Finished Process----------")

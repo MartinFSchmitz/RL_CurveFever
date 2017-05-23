@@ -13,6 +13,9 @@ def make_plot(x, name, step):
     Output:
     Saved several Plots"""
     
+        # Example data
+    labels = ('a)', 'b)', 'c)')
+    
     leng = x[0].size
     # ToDO cut all
     step_x = []
@@ -36,7 +39,7 @@ def make_plot(x, name, step):
 
     #plt.plot( episodes,reward_array,linewidth=0.2,color='g')
     for j in range(len(x)):
-        plt.plot(episodes_step, all_arrays[j], linewidth=1)
+        plt.plot(episodes_step, all_arrays[j], linewidth=1, label=labels[j])
     plt.plot(
         episodes_step,
         np.zeros(
@@ -45,6 +48,7 @@ def make_plot(x, name, step):
         color='black')  # graph to show x axis
     plt.xlabel('Episode')
     plt.ylabel('Reward')
+    plt.legend(bbox_to_anchor=(0.75, 0.25), loc=2, borderaxespad=0.)
     #plt.title(name.upper() + ': Rewards per Episode')
     plt.title(name + ': Rewards per Episode')
     plt.grid(True)
@@ -90,18 +94,20 @@ def make_bar_plot(x, name, number):
 print("-----Plot Maker-----")
 data = []
 
-with open('data/plots/re_b.p', 'rb') as pickle_file:
-    rewards = pickle.load(pickle_file)
-with open('data/plots/re_a.p', 'rb') as pickle_file:
+with open('data/plots/CNN_Prepro/a.p', 'rb') as pickle_file:
+    rewards_1 = pickle.load(pickle_file)
+with open('data/plots/CNN_Prepro/b.p', 'rb') as pickle_file:
     rewards_2 = pickle.load(pickle_file)
-with open('data/plots/re_c.p', 'rb') as pickle_file:
+with open('data/plots/CNN_Prepro/c.p', 'rb') as pickle_file:
     rewards_3 = pickle.load(pickle_file)
 
-data.append(rewards)
+
+data.append(rewards_1)
 data.append(rewards_2)
 data.append(rewards_3)
-#make_plot(data, 'LFA-Preprozessoren', 100)
-make_bar_plot(data, 'LFA-Preprozessoren', 1000)
+
+make_plot(data, 'CNN-Preprozessoren', 100)
+#make_bar_plot(data, 'LFA-Preprozessoren', 1000)
 
 
 

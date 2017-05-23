@@ -32,17 +32,17 @@ import pickle
 
 
 """ HYPER PARAMETERS """
-LEARNING_RATE = 5e-4
+
 GAMMA = 0.99
 #LEARNING_FRAMES = 10000000
-LEARNING_EPISODES = 100000
-SAVE_XTH_GAME = 2000
+LEARNING_EPISODES = 10000
+SAVE_XTH_GAME = 5000
 SIZE = 20 + 2
 #STATE_CNT = SIZE**2+4
 DEPTH = 2
 
-ACTION_CNT = 3 # left, right, straight
-ALPHA = 0.001  #0.000001  #0.000005 bei advanced (45)
+ACTION_CNT = 4 # left, right, up, down
+ALPHA = 0.0005 #0.000001  #0.000005 bei advanced (45) #5e-4 0.001
 POLICY_BATCH_TRAIN = False
 
 game = RL_Algo.init_game()
@@ -72,8 +72,8 @@ class Policy_Brain():
         """ Trains the LFA with given batch of (state,action,reward, baseline) tuples
         Perform one parameter update for whole Batch """
         # to change when actionCnt changes !
-        state = [[], [], []]
-        target = [[], [], []]
+        state = [[], [], [],[]]
+        target = [[], [], [],[]]
         # could also use any other given len of a variable
         batch_size = len(actions)
         pred_states_full = self.predict(states)
@@ -273,7 +273,7 @@ agent = Agent()
 rewards = []
 try:
     print("Starting learning")
-    frame_count = 0
+    #frame_count = 0
     episode_count = 0
 
     while True:
@@ -281,10 +281,11 @@ try:
         if episode_count >= LEARNING_EPISODES:
             break
         episode_reward = env.run(agent)
-        frame_count += episode_reward
+        #frame_count += episode_reward
         rewards.append(episode_reward)
 
         episode_count += 1
+        """
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
 
             save_counter = episode_count / SAVE_XTH_GAME
@@ -292,13 +293,11 @@ try:
             RL_Algo.make_plot(rewards, 'lfa_rei', 100)
             pickle.dump(agent.policy_brain.model, open(
                         'data/lfa_rei/save.p', 'wb'))
-
+        """
 finally:
     # make plot
-    reward_array = np.asarray(rewards)
-    episodes = np.arange(0, reward_array.size, 1)
 
-    RL_Algo.make_plot(reward_array, 'lfa_rei', 100, save_array=True)
+    RL_Algo.make_plot(rewards, 'lfa_rei', 100, save_array=True)
     pickle.dump(agent.policy_brain.model, open(
         'data/lfa_rei/save.p', 'wb'))
     print("-----------Finished Process----------")

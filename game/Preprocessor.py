@@ -25,6 +25,7 @@ class CNNPreprocessor:
         self.spur_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
         self.state_cnt = state_cnt
         self.begin = True
+        
 
     def cnn_preprocess_state(self, state, multi_player=False):
         # converts given state into fitting state for CNN with only matrices
@@ -41,17 +42,18 @@ class CNNPreprocessor:
         if self.begin:
             self.env_map = copy.copy(map)
             self.begin = False
+            self.old_map = copy.copy(map)
+            self.spur_map_2 = copy.copy(map)
         player_map = np.zeros(shape=(self.state_cnt[1], self.state_cnt[2]))
         #player_map = copy.copy(self.spur_map)
         player_coords = (state["playerPos"][1],
                          state["playerPos"][0])
-        player_map[player_coords] =  math.radians(state["playerRot"]) # change back to 1?????????????????
-        #player_map[player_coords] =  1
+        #player_map[player_coords] =  math.radians(state["playerRot"]) # change back to 1?????????????????
+        player_map[player_coords] =  1
         #player_map[player_coords] =  np.sin(math.radians(state["playerRot"]))
         c_map = copy.copy(map)
-        c_map[player_coords] =5  #5 
-        self.spur_map[player_coords] = 1
-        #rotrot = die nur rotation map failed!
+        c_map[player_coords] = 100 # testet: -1,1,2,5,10,100,-100,500,1000,2000,10000,100000000, 100 is best
+
         if multi_player:
             print(multi_player)
             opponent_map = self.zero_map
@@ -60,7 +62,7 @@ class CNNPreprocessor:
             opponent_map[opponent_coords] = 1
             features = np.array([map, player_map, opponent_map])
         else:
-            features = np.array([c_map, player_map])
+            features = np.array([c_map])
 
         return features, reward, done
 
@@ -231,6 +233,7 @@ class LFAPreprocessor:
         p = state["playerPos"]
         r = state["playerRot"]
         #m[(p[1],p[0])] = 9
+        #print(m)
         if (m[(p[1],p[0]+1)] == 1): #r
             f[0] = 1        
         if (m[(p[1],p[0]-1)] == 1): #l
@@ -253,7 +256,7 @@ class LFAPreprocessor:
         elif ( r == 1): f[9] = 1
         elif ( r == 2): f[10] = 1
         elif ( r == 3): f[11] = 1
-                
+               
         
         #diagonal
         if (m[(p[1]+1,p[0]+1)] == 1): #r

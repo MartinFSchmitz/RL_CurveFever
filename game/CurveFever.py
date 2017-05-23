@@ -18,7 +18,7 @@ COLOR_ONE = (255, 0, 0)
 COLOR_TWO = (0, 255, 0)
 COLOR_THREE = (0, 0, 255)
 BG_COLOR = (0, 0, 0)
-SIZE = 20 # Size of the Game Board  #min 34 with 3 conv Layers
+SIZE = 60 # Size of the Game Board  #min 34 with 3 conv Layers
 MAP_SIZE = (SIZE, SIZE)
 SCREEN_SCALE = 10
 
@@ -177,12 +177,12 @@ class SinglePlayer (Main):
 
     def create_players(self):
 
-        #self.player_1 = HumanPlayer(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
+        self.player_1 = HumanPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
         #self.player_1 = QLFAPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
         #self.player_1 = LFA_REI_Player(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
         #self.player_1 = DQNPlayer_Tron(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
-        self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        #self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         #self.player_1 = A3CPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False
 
