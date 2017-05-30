@@ -30,6 +30,9 @@ import RL_Algo
 
 #-- constants
 
+
+PRINT_RESULTS = False
+
 SIZE = 40
 DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
@@ -37,7 +40,7 @@ STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 #STATE_CNT = 3
 ACTION_CNT = 4
 
-RUN_TIME = 60 * 60 * 48  # changed to 30
+RUN_TIME = 60 * 60 * 100  # changed to 30
 THREADS = 8
 OPTIMIZERS = 4
 THREAD_DELAY = 0.001
@@ -334,7 +337,7 @@ class Environment(threading.Thread):
             if done or self.stop_signal:
                 break
         brain.rewards.append(R)
-        print("Total R:", R)
+        if PRINT_RESULTS: print("Total R:", R)
 
     def run(self):
         while not self.stop_signal:

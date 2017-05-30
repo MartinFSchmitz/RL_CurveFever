@@ -254,11 +254,11 @@ class SinglePlayer (Main):
     def create_players(self):
 
         #self.player_1 = HumanPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
-        self.player_1 = GreedyPlayer_Tron(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
+        #self.player_1 = GreedyPlayer_Tron(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
         #self.player_1 = QLFAPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
         #self.player_1 = LFA_REI_Player(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
         #self.player_1 = DQNPlayer_Tron(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
-        #self.player_1 = REINFORCEPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        self.player_1 = REINFORCEPlayer_Tron(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         #self.player_1 = A3CPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False
 
@@ -286,7 +286,7 @@ class MultiPlayer (Main):
 
 if __name__ == '__main__':
 
-    self = MultiPlayer()
+    self = SinglePlayer()
     pygame.init()
 
     self.first_init()

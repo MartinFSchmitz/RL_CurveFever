@@ -23,7 +23,7 @@ from keras.optimizers import *
 """ Double "Deep Q -Network" with PER """
 
 """ Hypertparameters """
-
+PRINT_RESULTS = False
 SIZE = 40
 DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
@@ -81,7 +81,7 @@ class DQN_Brain():
         #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
         #model.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(input),dim_ordering='th'))
         
-        model.add(Conv2D(32, (6, 6), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(input)))    
+        model.add(Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(input)))    
         model.add(Conv2D(64, (3, 3), strides=(2,2),data_format = "channels_first", activation='relu'))
         model.add(Conv2D(64, (2, 2), data_format = "channels_first", activation='relu'))
                   
@@ -323,7 +323,7 @@ class Environment:
             #print("frame:", "reward:" , reward, "action:" , self.game.player_1.action, "done" , done  )
             if done:  # terminal state
                 break
-        print("Total reward:", R)
+        if PRINT_RESULTS: print("Total reward:", R)
         return R
 #-------------------- MAIN ----------------------------
 
@@ -341,10 +341,7 @@ try:
     while randomAgent.exp < MEMORY_CAPACITY:
         reward = env.run(randomAgent)
         #print(randomAgent.exp, "/", MEMORY_CAPACITY)
-        #rewaaards += reward
-        #gaaames +=1
     agent.memory = randomAgent.memory
-    # print("seeeeeeeee",rewaaards/gaaames)
     randomAgent = None
 
     print("Starting learning")
@@ -355,6 +352,7 @@ try:
         if episode_count >= LEARNING_EPISODES:
             break
         episode_reward = env.run(agent)
+        if PRINT_RESULTS:  print("Episode:", episode_count)
         #frame_count += episode_reward
         rewards.append(episode_reward)
 

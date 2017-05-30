@@ -18,6 +18,9 @@ from Preprocessor import LFAPreprocessor
 """ klassisches Q-Learning mit Linearer Funktionsannaeherung """
 
 # HYPER-PARAMETERS
+LOADED_DATA = 'data/lfa_rei/m2_mit_greedy.p'
+GAMEMODE = "multi_2" # single, multi_1, multi_2
+
 STATE_CNT = 4
 ACTION_CNT = 4  # left, right, straight
 
@@ -46,15 +49,13 @@ STATE_CNT = len(pre.lfa_preprocess_state_feat( game.get_game_state())[0])
 #------------------------------------------------------------------
 
 
-class Estimator():
+class Brain():
     """
     Value Function approximator.
     """
 
     def __init__(self, init_state):
-        # We create a separate model for each action in the environment's
-        # action space. Alternatively we could somehow encode the action
-        # into the features, but this way it's easier to code up.
+
         self.models = []
         for _ in range(ACTION_CNT):
 
@@ -83,7 +84,7 @@ class Estimator():
 
     def update(self, s, a, y):
         """
-        Updates the estimator parameters for a given state and action towards
+        Updates the Brain parameters for a given state and action towards
         the target y.
         """
         # print(self.models)
@@ -93,12 +94,12 @@ class Estimator():
 
 #------------------------------------------------------------------
 
-def make_epsilon_greedy_policy(estimator, epsilon, nA):
+def make_epsilon_greedy_policy(Brain, epsilon, nA):
     """
     Creates an epsilon-greedy policy based on a given Q-function approximator and epsilon.
 
     Args:
-        estimator: An estimator that returns q values for a given state
+        Brain: An Brain that returns q values for a given state
         epsilon: The probability to select a random action . float between 0 and 1.
         nA: Number of actions in the environment.
 
@@ -109,7 +110,7 @@ def make_epsilon_greedy_policy(estimator, epsilon, nA):
     """
     def policy_fn(observation):
         A = np.ones(nA, dtype=float) * epsilon / nA
-        q_values = estimator.predict(observation)
+        q_values = Brain.predict(observation)
         best_action = np.argmax(q_values)
         val = q_values[best_action]
         # print(val)
@@ -120,14 +121,14 @@ def make_epsilon_greedy_policy(estimator, epsilon, nA):
 #------------------------------------------------------------------
 
 
-def q_learning(game, estimator):
+def q_learning(game, Brain):
     """
     Q-Learning algorithm for fff-policy TD control using Function Approximation.
     Finds the optimal greedy policy while following an epsilon-greedy policy.
 
     Args:
         env: OpenAI environment.
-        estimator: Action-Value function estimator
+        Brain: Action-Value function Brain
         num_episodes: Number of episodes to run for.
         discount_factor: Lambda time discount factor.
         epsilon: Chance the sample a random action. Float betwen 0 and 1.
@@ -139,22 +140,14 @@ def q_learning(game, estimator):
 
     # Keeps track of useful statistics
     stats = None
-    # stats = plotting.EpisodeStats(
-    #    episode_lengths=np.zeros(num_episodes),
-    #    episode_rewards=np.zeros(num_episodes))
-    rewards = []
+
     for i_episode in range(NUM_EPISODES):
 
         # The policy we're following
         epsilon = MIN_EPSILON + (MAX_EPSILON - MIN_EPSILON) * \
             math.exp(-LAMBDA * i_episode)
         policy = make_epsilon_greedy_policy(
-            estimator, epsilon, ACTION_CNT)
-
-        # Print out which episode we're on, useful for debugging.
-        # Also print reward for last episode
-        #last_reward = stats.episode_rewards[i_episode - 1]
-        # sys.stdout.flush()
+            Brain, epsilon, ACTION_CNT)
 
         # Reset the environment and pick the first action
         game.init(render=False)
@@ -171,12 +164,9 @@ def q_learning(game, estimator):
             # Take a step
             next_state, reward, done = pre.lfa_preprocess_state_feat(game.AI_learn_step())
 
-            # Update statistics
-            #stats.episode_rewards[i_episode] += reward
-            #stats.episode_lengths[i_episode] = t
 
             # TD Update
-            q_values_next = estimator.predict(next_state)
+            q_values_next = Brain.predict(next_state)
             # print(q_values_next)
 
             # Use this code for Q-Learning
@@ -191,19 +181,22 @@ def q_learning(game, estimator):
             # print(q_values_next)
             # Update the function approximator using our target
 
-            estimator.update(state, action, td_error)
+            Brain.update(state, action, td_error)
             if done:
                 print("done episode: ", i_episode, "time:", t)
                 rewards.append(t)
                 if i_episode % 5000 == 0:
-                    pickle.dump(estimator.models, open(
+                    if (GAMEMODE == "multi_2"):
+                        pickle.dump(agent.policy_brain.model, open(
+                        'data/lfa_rei/training_pool/agent_' + str(save_counter) +'.p', 'wb'))   
+                    pickle.dump(Brain.models, open(
                         'data/lfa/save.p', 'wb'))
                     RL_Algo.make_plot(rewards, 'lfa', 100, save_array=True)
 
                 break
 
             state = next_state
-    pickle.dump(estimator.models, open(
+    pickle.dump(Brain.models, open(
                         'data/lfa/save.p', 'wb'))
     RL_Algo.make_plot(rewards, 'lfa', 100, save_array=True)
     return stats
@@ -211,5 +204,5 @@ def q_learning(game, estimator):
 
 
 game = RL_Algo.init_game()
-estimator = Estimator(state)
-stats = q_learning(game, estimator)
+Brain = Brain(state)
+stats = q_learning(game, Brain)

@@ -220,7 +220,7 @@ class CNNPlayer_Tron(TronPlayer):
 
     def do_action(self, state):
         s, _, _ = self.prepro.cnn_preprocess_state(state)
-        s = s.reshape(1, 2, self.mapSize[0] + 2, self.mapSize[1] + 2)
+        s = s.reshape(1, 1, self.mapSize[0] + 2, self.mapSize[1] + 2)
         action = self.choose_action(s)
         # action Label is in interval (0,2), but actual action is in interval
         # (-1,1)
@@ -244,7 +244,7 @@ class REINFORCEPlayer_Tron(CNNPlayer_Tron):
         return "data/reinforce/model.json"
 
     def load_cnn(self):
-        self.cnn.load_weights("data/reinforce/model_11.0.h5")
+        self.cnn.load_weights("data/reinforce/gut.h5")
 
     def choose_action(self, s):
         values = self.cnn.predict(s).flatten()

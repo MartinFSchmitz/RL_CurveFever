@@ -32,6 +32,10 @@ import copy
 
 
 """ HYPER PARAMETERS """
+LOADED_DATA = 'data/reinforce/test.p'
+GAMEMODE = "single" # single, multi_1, multi_2
+PRINT_RESULTS = False
+
 LEARNING_RATE = 1.5e-4 #5e-4
 GAMMA = 0.99
 LEARNING_FRAMES = 10000000
@@ -50,7 +54,17 @@ class Policy_Brain():
     def __init__(self):
         self.session = tf.Session()
         K.set_session(self.session)
+        """
+                # load json and create model
+        json_file = open("data/reinforce/model.json", 'r')
+        loaded_model_json = json_file.read()
+        json_file.close()
+        self.model = model_from_json(loaded_model_json)
+        # load weights into new model
+        self.model.load_weights("data/reinforce/p.h5")
 
+        #self.model._make_predict_function() 
+        """        
         self.model = self._build_model()
         self.graph = self._build_graph(self.model)
 
@@ -70,8 +84,8 @@ class Policy_Brain():
                 STATE_CNT[1],
                 STATE_CNT[2]))
         l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input) #8,8 4,4 original
-        #l_conv_2 = Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1) #8,8 4,4 original
-        l_conv_3 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
+        l_conv_2 = Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1) #8,8 4,4 original
+        l_conv_3 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_2)
 
         #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
 
@@ -153,8 +167,21 @@ class Policy_Brain():
 class Value_Brain():
 
     def __init__(self):
+        
+        """
+        # load json and create model
+        
+        json_file = open("data/reinforce/model_v.json", 'r')
+        loaded_model_json = json_file.read()
+        json_file.close()
+        self.model = model_from_json(loaded_model_json)
+        # load weights into new model
+        self.model.load_weights("data/reinforce/v.h5")
+        opt = RMSprop(lr=0.00025)
+        self.model.compile(loss='mse', optimizer=opt)
+        """
         self.model = self._build_model()
-
+        
     def _build_model(self):
 
         l_input = Input(
@@ -163,17 +190,11 @@ class Value_Brain():
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        l_conv_1 = Conv2D(
-            32, (8, 8), strides=(
-                4, 4), data_format="channels_first", activation='relu')(l_input)
-        l_conv_2 = Conv2D(
-            64,
-            (3,
-             3),
-            data_format="channels_first",
-            activation='relu')(l_conv_1)
-
-        l_conv_flat = Flatten()(l_conv_2)
+        l_conv_1 = Conv2D(32, (8, 8), strides=(4, 4), data_format="channels_first", activation='relu')(l_input)
+        l_conv_2 = Conv2D(64,(4,4),data_format="channels_first",activation='relu')(l_conv_1)
+        l_conv_3 = Conv2D(64,(3,3),data_format="channels_first",activation='relu')(l_conv_2)
+        
+        l_conv_flat = Flatten()(l_conv_3)
         l_dense = Dense(units=16, activation='relu')(l_conv_flat)
 
         out = Dense(
@@ -264,7 +285,7 @@ class Environment:
 
     def run(self, agent):
         """ run one episode of the game, store the states and replay them every
-         step """
+        step """
         states, actions, rewards = [], [], []
         # Reset the environment and pick the first action
         self.game.init(render=False)
@@ -299,7 +320,7 @@ class Environment:
         states_array = np.vstack(states)
         agent.replay(states_array, actions, rewards)
 
-        print("Total reward:", all_rewards)
+        if PRINT_RESULTS: print("Total reward:", all_rewards)
 
         return all_rewards
 #------------------------------------------------------------------
@@ -320,23 +341,37 @@ try:
         if episode_count >= LEARNING_EPISODES:
             break
         episode_reward = env.run(agent)
-        print(episode_count)
+        if PRINT_RESULTS:  print("Episode:", episode_count)
         #frame_count += episode_reward
         rewards.append(episode_reward)
         episode_count += 1
         
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
 
-            save_counter = episode_count / SAVE_XTH_GAME
+            save_counter = int(episode_count / SAVE_XTH_GAME)
 
-            RL_Algo.make_plot(rewards, 'reinforce', 100)
             RL_Algo.save_model(
-                agent.policy_brain.model,
-                file='reinforce',
-                name=str(save_counter))
+                    agent.policy_brain.model,
+                    file='reinforce',
+                    name=str(save_counter), gamemode = GAMEMODE)
+            
+            RL_Algo.save_model(
+                    agent.value_brain.model,
+                    file='reinforce',
+                    name=str(save_counter) + "value", gamemode = GAMEMODE)
+            
+            RL_Algo.make_plot(rewards, 'reinforce', 100)
+            
+
         
 finally:
         # make plot
+        
+
+    # serialize model to JSON
+    model_json = agent.value_brain.model.to_json()
+    with open("data/reinforce/model_v.json", "w") as json_file:
+        json_file.write(model_json)
 
     RL_Algo.make_plot(rewards, 'reinforce', 100, save_array=True)
 

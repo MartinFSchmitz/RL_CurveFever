@@ -9,7 +9,7 @@ import random
 from CurveFever import Learn_SinglePlayer
 import matplotlib
 from CurveFever import Learn_MultyPlayer
-from game.CurveFever import Learn_MultyPlayer_step_2
+from CurveFever import Learn_MultyPlayer_step_2
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
@@ -59,16 +59,24 @@ def init_game(multi):
     game.init( render = False)
     return game
 
-def save_model(model, file, name):
+def save_model(model, file, name, gamemode = None):
     """saves model structure to json and weights to h5 file """
-    model.save_weights(
-    "data/" + file + "/model_" + name + ".h5")
+    if gamemode == "multi_2":
+        model.save_weights(
+        "data/" + file + "/training_pool/model_" + name + ".h5")
+
+    else:
+        model.save_weights(
+        "data/" + file + "/model_" + name + ".h5")
+        
     print("Saved model " + name + " to disk")
     if name == 'final':
         # serialize model to JSON
         model_json = model.to_json()
         with open("data/" + file + "/model.json", "w") as json_file:
             json_file.write(model_json)
+
+        
 
 def make_plot(x, name, step, save_array = False):
     """ creates and saves plot of given arrays of rewards
