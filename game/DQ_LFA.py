@@ -40,13 +40,13 @@ MIN_EPSILON = 0.1
 EXPLORATION_STOP = 500000
 LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
-UPDATE_TARGET_FREQUENCY = 10000
+UPDATE_TARGET_FREQUENCY = 1 #10000
 
 SAVE_XTH_GAME = 1000  # all x games, save the CNN
 LEARNING_FRAMES = 1000000
 LEARNING_EPISODES = 30000
 
-ALPHA = 0.005  #0.0005 # dont change
+ALPHA = 0.005  #0.005 # dont change
 
 game = RL_Algo.init_game()
 pre = LFAPreprocessor(SIZE)

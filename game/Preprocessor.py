@@ -20,14 +20,14 @@ class CNNPreprocessor:
         err = y_pred - y_true
         return K.mean(K.sqrt(1 + K.square(err)) - 1, axis=-1)
 
-    def __init__(self, state_cnt):
+    def __init__(self, state_cnt, multi =False):
         #self.zero_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
         self.spur_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
         self.state_cnt = state_cnt
         self.begin = True
-        
+        self.multi = multi
 
-    def cnn_preprocess_state(self, state, multi_player=False):
+    def cnn_preprocess_state(self, state):
         # converts given state into fitting state for CNN with only matrices
         # creates a diffMap with only zeros except a 1 in the player position
         # doesnt use the rotation
@@ -35,7 +35,6 @@ class CNNPreprocessor:
 
 #-----------------
 
-#Idee: Alte Zutände weniger gewichten, also Spur mit 0.9,0.91,...,1
         map = state["map"]
         reward = state["reward"]
         done = state["done"]
@@ -54,15 +53,14 @@ class CNNPreprocessor:
         c_map = copy.copy(map)
         c_map[player_coords] = 100 # testet: -1,1,2,5,10,100,-100,500,1000,2000,10000,100000000, 100 is best
 
-        if multi_player:
-            print(multi_player)
-            opponent_map = self.zero_map
+        if self.multi:
+            print("multi_player")
             opponent_coords = (
                 int(state["opponentPos"][1]), int(state["opponentPos"][0]))
-            opponent_map[opponent_coords] = 1
-            features = np.array([map, player_map, opponent_map])
-        else:
-            features = np.array([c_map])
+            c_map[opponent_coords] = -100
+
+
+        features = np.array([c_map])
 
         return features, reward, done
 
@@ -87,84 +85,8 @@ class LFAPreprocessor:
     def __init__(self, size):
         self.map_size = size
 
-    def lfa_preprocess_state_map(self, state, multi_player=False):
-
-        # converts given state into fitting state for the LFA. Has to be only scalars for the state
-        # takes player position as argument and one scalar for each pixel in the environment. The value of theses pixels is max(0, cos(a)/distance
-        # where distance is the distance from the pixel to the player and a is
-        # the angle between player rotation and vector from position to pixel.
-        features = self.get_features(
-            state["playerPos"],
-            state["playerRot"],
-            state["map"])
-        if (multi_player):
-            opponent_features = self.get_features_tron(
-                state["opponentPos"], state["opponentRot"], state["map"])
-            features = np.append(features, opponent_features)
-        return features, state["reward"], state["done"]
-
-    def get_features_tron(self, pos, rot, map):
-        m = copy.copy(map)
-        x = pos[0] / self.map_size
-        
-        y = pos[1] / self.map_size
-        # Compute position vector pv
-
-        pv_x = np.cos(rot)
-
-        for i in range(m[0].size):  # y coord
-            for j in range(m[0].size):  # x coord
-                if(m[i][j] == 1):
-                    d_x = np.abs(pos[0]-i) * x
-                    d_y = np.abs(pos[1] - j) * y
-                    m[i][j] = d_x + d_y
-
-        m = m.reshape(1, -1)[0]
-        x = 0.5 - x
-        y = 0.5 - y
-        abs = np.sqrt((x**2) + (y**2))
-        pos = np.array([abs, x, y,pv_x])
-        features = np.append(pos, m)
-
-        return features
-    
-    def get_features(self, pos, rot, map):
-
-        m = copy.copy(map)
-        y = pos[0] / self.map_size
-        x = pos[1] / self.map_size
-        # Compute position vector pv
-
-        pv_x = np.cos(rot)
-        pv_y = np.sqrt(1 - pv_x)
-        for i in range(m[0].size):  # y coord
-            for j in range(m[0].size):  # x coord
-                if(m[i][j] == 1):
-                    dy = i - y
-                    dx = j - x
-                    dist = np.sqrt(dx**2 + dy**2)
-                    dx = dx / dist
-                    dy = dy / dist
-                    # scalarproduct
-                    cosa = dx * pv_x + dy * pv_y
-
-                    if (dist != 0):
-                        res = max(cosa, 0) / dist
-                    else:
-                        res = 1
-                    m[i][j] = res
-                # print(m[i][j])
-
-        m = m.reshape(1, -1)[0]
-        x = 0.5 - x
-        y = 0.5 - y
-        abs = np.sqrt((x**2) + (y**2))
-        pos = np.array([abs, y,x,pv_x])
-        features = np.append(pos, m)
-
-        return features
-
-    def lfa_preprocess_state_feat(self, state, multi_player=False):
+    def lfa_preprocess_state_feat(self, state):
+          
         features = []
         
         #features.append(self.basic_features(state)) #0.0001
@@ -179,18 +101,16 @@ class LFAPreprocessor:
 
     def basic_features(self,state):
         features = []
-        # a)
+
         p = state["playerPos"]
         dx = p[0]/self.map_size
         dy = p[1]/self.map_size
-        # b)
-        
-        
+    
         features.append(dx)      
         features.append(dy)
         features.append(1-dx)      
         features.append(1-dy)
-        # c)
+
         abs = np.sqrt((dx**2) + (dy**2))
         features.append(abs)
 
@@ -321,8 +241,8 @@ class LFAPreprocessor:
         while True:
             # look in one direction until you see a wall
             i += 1
-            y = pos[0] + y_adder * i
-            x = pos[1] + x_adder * i
+            y = pos[1] + y_adder * i
+            x = pos[0] + x_adder * i
             if curr_map[y,x] != 0:
                 break
             distance += 1
