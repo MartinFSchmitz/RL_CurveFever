@@ -20,7 +20,7 @@ COLOR_ONE = (255, 0, 0)
 COLOR_TWO = (0, 255, 0)
 COLOR_THREE = (0, 0, 255)
 BG_COLOR = (0, 0, 0)
-SIZE = 20 # Size of the Game Board  #min 34 with 3 conv Layers
+SIZE = 40 # Size of the Game Board  #min 34 with 3 conv Layers
 MAP_SIZE = (SIZE, SIZE)
 SCREEN_SCALE = 10
 

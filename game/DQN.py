@@ -24,7 +24,7 @@ from keras.optimizers import *
 
 """ Hypertparameters """
 
-SIZE = 20
+SIZE = 40
 DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
@@ -291,7 +291,7 @@ class RandomAgent:
 class Environment:
 
     def __init__(self):
-        self.game = RL_Algo.init_game()
+        self.game = RL_Algo.init_game("single")
         self.pre = CNNPreprocessor(STATE_CNT)
 
     def run(self, agent):

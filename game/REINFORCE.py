@@ -37,7 +37,7 @@ GAMMA = 0.99
 LEARNING_FRAMES = 10000000
 LEARNING_EPISODES = 100000
 SAVE_XTH_GAME = 10000
-SIZE = 20
+SIZE = 40
 DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
@@ -320,6 +320,7 @@ try:
         if episode_count >= LEARNING_EPISODES:
             break
         episode_reward = env.run(agent)
+        print(episode_count)
         #frame_count += episode_reward
         rewards.append(episode_reward)
         episode_count += 1
