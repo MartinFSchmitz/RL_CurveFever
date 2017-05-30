@@ -11,6 +11,7 @@ import sys
 import collections
 import pygame
 from CurveFever import Learn_SinglePlayer
+from CurveFever import Learn_MultyPlayer
 
 from keras.models import *
 from keras.layers import *
@@ -32,20 +33,21 @@ import pickle
 
 
 """ HYPER PARAMETERS """
-
+LOADED_DATA = 'data/lfa_rei/m2_mit_greedy.p'
+GAMEMODE = "multi_2" # single, multi_1, multi_2
 GAMMA = 0.99
 #LEARNING_FRAMES = 10000000
-LEARNING_EPISODES = 10000
-SAVE_XTH_GAME = 5000
+LEARNING_EPISODES = 100000
+SAVE_XTH_GAME = 100000
 SIZE = 20 + 2
 #STATE_CNT = SIZE**2+4
 DEPTH = 2
 
 ACTION_CNT = 4 # left, right, up, down
-ALPHA = 0.0005 #0.000001  #0.000005 bei advanced (45) #5e-4 0.001
+ALPHA = 0.0002 #0.0002
 POLICY_BATCH_TRAIN = False
 
-game = RL_Algo.init_game()
+game = RL_Algo.init_game(GAMEMODE)
 pre = LFAPreprocessor(SIZE)
 # Hack to not always set STATE_CNT manually
 STATE_CNT = len(pre.lfa_preprocess_state_feat( game.get_game_state())[0])
@@ -62,11 +64,15 @@ class Policy_Brain():
 
         """ separate model for each action in the environment's action space. """
         
-        self.model = []
-
-        for _ in range(ACTION_CNT):
-            m = np.zeros(STATE_CNT) + 0.5
-            self.model.append(m)
+        
+        if (LOADED_DATA == None):
+            self.model = []
+            for _ in range(ACTION_CNT):
+                m = np.zeros(STATE_CNT) + 0.5
+                self.model.append(m)
+        else:
+            with open(LOADED_DATA, 'rb') as pickle_file:
+                self.model = pickle.load(pickle_file)
 
     def train(self, states, actions, total_return, baseline_value):
         """ Trains the LFA with given batch of (state,action,reward, baseline) tuples
@@ -221,7 +227,7 @@ class Agent:
 class Environment:
 
     def __init__(self):
-        self.game = RL_Algo.init_game()
+        self.game = RL_Algo.init_game(GAMEMODE) #multiplayer?
         self.pre = LFAPreprocessor(SIZE)
 
     def run(self, agent):
@@ -285,19 +291,24 @@ try:
         rewards.append(episode_reward)
 
         episode_count += 1
-        """
-        if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
 
-            save_counter = episode_count / SAVE_XTH_GAME
+        if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the LFA
+
+            save_counter = int(episode_count / SAVE_XTH_GAME)
 
             RL_Algo.make_plot(rewards, 'lfa_rei', 100)
-            pickle.dump(agent.policy_brain.model, open(
+            if (GAMEMODE == "multi_2"):
+                pickle.dump(agent.policy_brain.model, open(
+                        'data/lfa_rei/training_pool/agent_' + str(save_counter) +'.p', 'wb'))                
+            else:
+                pickle.dump(agent.policy_brain.model, open(
                         'data/lfa_rei/save.p', 'wb'))
-        """
+
 finally:
     # make plot
-
+    
     RL_Algo.make_plot(rewards, 'lfa_rei', 100, save_array=True)
     pickle.dump(agent.policy_brain.model, open(
         'data/lfa_rei/save.p', 'wb'))
+    print("mean Reward", sum(rewards)/episode_count)
     print("-----------Finished Process----------")

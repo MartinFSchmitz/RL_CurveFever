@@ -21,7 +21,7 @@ from Preprocessor import LFAPreprocessor
 STATE_CNT = 4
 ACTION_CNT = 4  # left, right, straight
 
-NUM_EPISODES = 20000
+NUM_EPISODES = 30000
 
 GAMMA = 0.99
 EPSILON = 0.1,

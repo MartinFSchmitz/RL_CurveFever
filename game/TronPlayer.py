@@ -24,7 +24,7 @@ from Preprocessor import *
 class TronPlayer(object):
 
     def __init__(self, mapSize, color,
-                 screenScale, control=None):
+                 screenScale,control=None, path = None):
         """ Init player and all variables
         Input:
         mapSize: size of current game board
@@ -58,7 +58,7 @@ class TronPlayer(object):
         self.rotSpeed = 90
         self.alive = True
         self.mapSize = mapSize
-        self.init_algorithm()
+        self.init_algorithm(path)
 
     def pos_updated(self, next_pos):
         """ Did the player change its position this step? """
@@ -115,13 +115,13 @@ class TronPlayer(object):
     def do_action(self, action, a=None, b=None):
         pass
 
-    def init_algorithm(self):
+    def init_algorithm(self, path = None):
         pass
 
 """ Differnt types of player, for Human Player and several Algorithm-Players """
 class HumanPlayer_Tron(TronPlayer):
 
-    def init_algorithm(self):
+    def init_algorithm(self, path = None):
         if self.control == "control_1":
             self.actions = {
                 "left": pygame.K_LEFT,
@@ -152,29 +152,23 @@ class HumanPlayer_Tron(TronPlayer):
 
 class GreedyPlayer_Tron(TronPlayer):
 
-    def init_algorithm(self):
+    def init_algorithm(self, path = None):
         self.agent = Greedy.Greedy()
         self.agent.init(self.mapSize[0])
-        # epsilon >= 3 | ToDo: try epsilon --> infinity (= no epsilon)
-        self.epsilon = 2000
 
-    def do_action(self, map):
-        # In every Timestep: drive straight until distance to Wall is < epsilon
-        action = 0
-        dist_to_wall = self.agent.distance(
-            self.rotation, map, (self.x, self.y))
-        if dist_to_wall <= self.epsilon:
-            #action = self.agent.maxdist_policy(map,  (self.x,self.y), self.rotation)
-            action = self.agent.not_mindist_policy(
-                map, (self.x, self.y), self.rotation)
+    def do_action(self, state):
+
+        action = self.agent.policy(self.action,state)
         self.action = action
 
 
 class QLFAPlayer_Tron(TronPlayer):
 
-    def init_algorithm(self):
+    def init_algorithm(self, path = None):
         self.prepro = LFAPreprocessor(self.mapSize[0])
-        with open('data/lfa/save.p', 'rb') as pickle_file:
+        if path == None:
+            path = 'data/lfa/save.p'
+        with open(path, 'rb') as pickle_file:
             self.models = pickle.load(pickle_file)
 
     def do_action(self, game_state):
@@ -187,9 +181,11 @@ class QLFAPlayer_Tron(TronPlayer):
 
 class LFA_REI_Player_Tron(TronPlayer):
 
-    def init_algorithm(self):
+    def init_algorithm(self, path = None):
         self.prepro = LFAPreprocessor(self.mapSize[0])
-        with open('data/lfa_rei/save.p', 'rb') as pickle_file:
+        if path == None:
+            path = 'data/lfa_rei/save.p'
+        with open(path, 'rb') as pickle_file:
             self.models = pickle.load(pickle_file)
 
     def do_action(self, game_state):
@@ -203,7 +199,7 @@ class LFA_REI_Player_Tron(TronPlayer):
 
 class CNNPlayer_Tron(TronPlayer):
 
-    def init_algorithm(self):
+    def init_algorithm(self, path = None):
         # returns a compiled model
         # identical to the previous one
         # RMSprob is a popular adaptive learning rate method
