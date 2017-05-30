@@ -8,6 +8,8 @@ import numpy as np
 import random
 from CurveFever import Learn_SinglePlayer
 import matplotlib
+from CurveFever import Learn_MultyPlayer
+from game.CurveFever import Learn_MultyPlayer_step_2
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
@@ -44,9 +46,15 @@ def get_random_equal_state(sample):
         """
     return (s,a,r,s_)
 #------------------------------------------------------------------  
-def init_game():
+def init_game(multi):
     """ init Game Environment """
-    game = Learn_SinglePlayer()
+    if multi == "single":
+        game = Learn_SinglePlayer()
+    if multi == "multi_1":
+        game = Learn_MultyPlayer()
+    if multi == "multi_2":
+        game = Learn_MultyPlayer_step_2()
+        game.set_players("lfa_rei")
     game.first_init()
     game.init( render = False)
     return game

@@ -20,6 +20,7 @@ def make_plot(x, name, step):
     # ToDO cut all
     step_x = []
     all_arrays = []
+
     rewards = 0
 
     for j in range(len(x)):
@@ -34,10 +35,10 @@ def make_plot(x, name, step):
         all_arrays.append(reward_step_array)
         step_x = []
 
-    #episodes = np.arange(0, leng, 1)
+    episodes = np.arange(0, leng, 1)
     episodes_step = np.arange(step / 2, leng - step / 2, step)
 
-    #plt.plot( episodes,reward_array,linewidth=0.2,color='g')
+    #plt.plot( episodes,reward_array,linewidth=0.2,color='go')
     for j in range(len(x)):
         plt.plot(episodes_step, all_arrays[j], linewidth=1, label=labels[j])
     plt.plot(
@@ -94,11 +95,11 @@ def make_bar_plot(x, name, number):
 print("-----Plot Maker-----")
 data = []
 
-with open('data/plots/CNN_Prepro/a.p', 'rb') as pickle_file:
+with open('data/plots/LFA_Prepro/a.p', 'rb') as pickle_file:
     rewards_1 = pickle.load(pickle_file)
-with open('data/plots/CNN_Prepro/b.p', 'rb') as pickle_file:
+with open('data/plots/LFA_Prepro/b.p', 'rb') as pickle_file:
     rewards_2 = pickle.load(pickle_file)
-with open('data/plots/CNN_Prepro/c.p', 'rb') as pickle_file:
+with open('data/plots/LFA_Prepro/c.p', 'rb') as pickle_file:
     rewards_3 = pickle.load(pickle_file)
 
 
@@ -106,7 +107,7 @@ data.append(rewards_1)
 data.append(rewards_2)
 data.append(rewards_3)
 
-make_plot(data, 'CNN-Preprozessoren', 100)
+make_plot(data, 'LFA-Preprozessoren', 100)
 #make_bar_plot(data, 'LFA-Preprozessoren', 1000)
 
 

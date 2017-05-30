@@ -24,7 +24,7 @@ from keras.optimizers import *
 
 """ Hypertparameters """
 
-SIZE = 60
+SIZE = 20
 DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
@@ -46,9 +46,9 @@ UPDATE_TARGET_FREQUENCY = 10000
 
 SAVE_XTH_GAME = 10000  # all x games, save the CNN
 LEARNING_FRAMES = 50000000  # 50mio
-LEARNING_EPISODES = 100000
+LEARNING_EPISODES = 10000
 
-FRAMESKIPPING = 4
+FRAMESKIPPING = 1
 
 def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
     err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
@@ -81,9 +81,9 @@ class DQN_Brain():
         #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
         #model.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(input),dim_ordering='th'))
         
-        model.add(Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(input)))    
-        model.add(Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu'))
-        model.add(Conv2D(64, (3, 3), data_format = "channels_first", activation='relu'))
+        model.add(Conv2D(32, (6, 6), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(input)))    
+        model.add(Conv2D(64, (3, 3), strides=(2,2),data_format = "channels_first", activation='relu'))
+        model.add(Conv2D(64, (2, 2), data_format = "channels_first", activation='relu'))
                   
         model.add(Flatten())
         model.add(Dense(output_dim=256, activation='relu'))
@@ -304,19 +304,19 @@ class Environment:
         n = 0
         while True:
             # one step of game emulation
-            #if n%FRAMESKIPPING == 0:
-            action = agent.act(state)  # agent decides an action
-            self.game.player_1.action = action
+            if n%FRAMESKIPPING == 0:
+                action = agent.act(state)  # agent decides an action
+                self.game.player_1.action = action
             next_state, reward, done = self.pre.cnn_preprocess_state(
                     self.game.AI_learn_step())
             if done:  # terminal state
                 #reward = 0
                 next_state = None
             # agent adds the new sample
-            #if n%FRAMESKIPPING == 0:
-            agent.observe((state, action, reward, next_state))
-            #[agent.replay() for _ in xrange (8)] #we make 8 steps because we have 8 new states
-            agent.replay()
+            if n%FRAMESKIPPING == 0:
+                agent.observe((state, action, reward, next_state))
+                #[agent.replay() for _ in xrange (8)] #we make 8 steps because we have 8 new states
+                agent.replay()
             state = next_state
             R += reward
             n += 1
