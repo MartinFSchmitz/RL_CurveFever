@@ -1,0 +1,10 @@
+nohup: ignoring input
+Using Theano backend.
+Traceback (most recent call last):
+  File "DQN.py", line 18, in <module>
+    from RL_Algo import Brain
+  File "/home/ubuntu/RL_CurveFever/game/RL_Algo.py", line 11, in <module>
+    from CurveFever import Learn_SinglePlayer
+  File "/home/ubuntu/RL_CurveFever/game/CurveFever.py", line 9, in <module>
+    from game.CurvePlayer import *
+ImportError: No module named game.CurvePlayer
