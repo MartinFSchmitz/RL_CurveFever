@@ -30,17 +30,19 @@ import RL_Algo
 
 #-- constants
 
+LOADED_DATA = 'data/a3c/p.h5'
+GAMEMODE = "single" # single, multi_1, multi_2
+PRINT_RESULTS = True
+ALGORITHM = "a3c"
 
-PRINT_RESULTS = False
-
-SIZE = 40
+SIZE = 20
 DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 
 #STATE_CNT = 3
 ACTION_CNT = 4
 
-RUN_TIME = 60 * 60 * 100  # changed to 30
+RUN_TIME = 10  # changed to 30
 THREADS = 8
 OPTIMIZERS = 4
 THREAD_DELAY = 0.001
@@ -70,16 +72,15 @@ class Brain:
     def __init__(self):
         self.session = tf.Session()
         K.set_session(self.session)
-        K.manual_variable_initialization(True)
-
+        K.manual_variable_initialization(True)    
         self.model = self._build_model()
         self.graph = self._build_graph(self.model)
-
         self.session.run(tf.global_variables_initializer())
         self.default_graph = tf.get_default_graph()
-
+        
+        if LOADED_DATA != None: self.model.load_weights(LOADED_DATA)
+        
         self.default_graph.finalize()    # avoid modifications
-
         self.rewards = []  # store rewards for graph
 
     def _build_model(self):
@@ -94,8 +95,8 @@ class Brain:
                 STATE_CNT[1],
                 STATE_CNT[2]))
         l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
-        l_conv_2 = Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1)
-        l_conv_3 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_2)
+        #l_conv_2 = Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1)
+        l_conv_3 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
         #model.add()
 
         # print(l_input)
@@ -309,7 +310,7 @@ class Environment(threading.Thread):
             eps_steps=EPS_STEPS):
         threading.Thread.__init__(self)
 
-        self.game = RL_Algo.init_game("single")
+        self.game = RL_Algo.init_game(GAMEMODE,ALGORITHM)
         self.pre = CNNPreprocessor(STATE_CNT)
         self.agent = Agent(eps_start, eps_end, eps_steps)
 
@@ -392,6 +393,6 @@ for o in opts:
     o.join()
 
 print("Training finished")
-RL_Algo.make_plot(brain.rewards, 'a3c', 100, save_array=True)
-RL_Algo.save_model(brain.model, file='a3c', name='final')
+RL_Algo.make_plot(brain.rewards, ALGORITHM, 100, save_array=True)
+RL_Algo.save_model(brain.model, file=ALGORITHM, name='final')
 # env_test.run()

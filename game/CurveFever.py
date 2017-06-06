@@ -230,14 +230,21 @@ class Learn_MultyPlayer_step_2 (Main):
         
     def create_players(self):
         self.player_1 = TronPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
-        opponent = random.choice(os.listdir('data/lfa_rei/training_pool/'))
-        path = 'data/lfa_rei/training_pool/' + opponent
+        opponent = random.choice(os.listdir('data/' + self.name + '/training_pool/'))
+        path = 'data/' + self.name + '/training_pool/' + opponent
         if (opponent == 'greedy.txt'):
             self.player_2 = GreedyPlayer_Tron(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
-        else:
+        elif (self.name == "lfa_rei"):
             self.player_2 = LFA_REI_Player_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE, path = path)
-
-
+        elif (self.name == "lfa"):
+            self.player_2 = QLFAPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE, path = path)
+        elif (self.name == "reinforce"):
+            self.player_2 = REINFORCEPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE, path = path)
+        elif (self.name == "dqn"):
+            self.player_2 = DQNPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE, path = path)
+        elif (self.name == "a3c"):
+            self.player_2 = A3CPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE, path = path)
+        else: print("error: False algorithm name")
     def step_score(self):
         """ reward Agent gets every step """
         if self.won:
@@ -286,7 +293,7 @@ class MultiPlayer (Main):
 
 if __name__ == '__main__':
 
-    self = SinglePlayer()
+    self = MultiPlayer()
     pygame.init()
 
     self.first_init()

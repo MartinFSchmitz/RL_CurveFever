@@ -32,15 +32,17 @@ import copy
 
 
 """ HYPER PARAMETERS """
-LOADED_DATA = 'data/reinforce/test.p'
+LOADED_DATA = 'data/reinforce/p.h5'
+LOADED_DATA_VALUE = 'data/reinforce/v.h5'
 GAMEMODE = "single" # single, multi_1, multi_2
-PRINT_RESULTS = False
+PRINT_RESULTS = True
+ALGORITHM = "reinforce"
 
 LEARNING_RATE = 1.5e-4 #5e-4
 GAMMA = 0.99
 LEARNING_FRAMES = 10000000
-LEARNING_EPISODES = 100000
-SAVE_XTH_GAME = 10000
+LEARNING_EPISODES = 1000
+SAVE_XTH_GAME = 500
 SIZE = 40
 DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
@@ -54,27 +56,23 @@ class Policy_Brain():
     def __init__(self):
         self.session = tf.Session()
         K.set_session(self.session)
-        """
-                # load json and create model
-        json_file = open("data/reinforce/model.json", 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        self.model = model_from_json(loaded_model_json)
-        # load weights into new model
-        self.model.load_weights("data/reinforce/p.h5")
+        
 
-        #self.model._make_predict_function() 
-        """        
         self.model = self._build_model()
         self.graph = self._build_graph(self.model)
 
         self.session.run(tf.global_variables_initializer())
+        #self.saver = tf.train.Saver() # try saving tensor graph
+        #self.saver.restore(self.session, "data/reinforce/trained_variables2.ckpt")
         self.default_graph = tf.get_default_graph()
-
-        # self.default_graph.finalize()    # avoid modifications
+        if LOADED_DATA != None:
+            self.model.load_weights(LOADED_DATA)
+        #self.default_graph.finalize()    # avoid modifications
 
         self.rewards = []  # store rewards for graph
-
+        
+    def save(self):
+        self.saver.save(self.session, os.path.join(os.getcwd(), 'data/reinforce/tensor.ckpt'))
     def _build_model(self):
         """ build the keras CNN model vor the policy brain """
         l_input = Input(
@@ -83,9 +81,9 @@ class Policy_Brain():
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input) #8,8 4,4 original
-        l_conv_2 = Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1) #8,8 4,4 original
-        l_conv_3 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_2)
+        l_conv_1 = Conv2D(32, (4, 4), strides=(4,4),data_format = "channels_first", activation='relu')(l_input) #8,8 4,4 original
+        l_conv_2 = Conv2D(64, (3, 3), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1) #8,8 4,4 original
+        l_conv_3 = Conv2D(64, (2, 2), data_format = "channels_first", activation='relu')(l_conv_2)
 
         #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
 
@@ -131,7 +129,7 @@ class Policy_Brain():
         advantage = r_t - b_t
 
         # minimize value error
-        loss = - log_prob * tf.stop_gradient(advantage)
+        loss = -log_prob * tf.stop_gradient(advantage)
 
         optimizer = tf.train.RMSPropOptimizer(LEARNING_RATE, decay=.99)
         minimize = optimizer.minimize(loss)
@@ -139,6 +137,7 @@ class Policy_Brain():
         return s_t, a_t, r_t, b_t, minimize
 
     def train(self, s, a, r, b):
+
         """ Trains the LFA with given batch of (state,action,reward, baseline) tuples
         Perform one parameter update for whole Batch """
         s = np.vstack([s])
@@ -168,7 +167,6 @@ class Value_Brain():
 
     def __init__(self):
         
-        """
         # load json and create model
         
         json_file = open("data/reinforce/model_v.json", 'r')
@@ -179,9 +177,11 @@ class Value_Brain():
         self.model.load_weights("data/reinforce/v.h5")
         opt = RMSprop(lr=0.00025)
         self.model.compile(loss='mse', optimizer=opt)
-        """
-        self.model = self._build_model()
+
+        #self.model = self._build_model()
         
+        
+        #if LOADED_DATA_VALUE != None: self.model.load_weights(LOADED_DATA_VALUE)        
     def _build_model(self):
 
         l_input = Input(
@@ -190,7 +190,7 @@ class Value_Brain():
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        l_conv_1 = Conv2D(32, (8, 8), strides=(4, 4), data_format="channels_first", activation='relu')(l_input)
+        l_conv_1 = Conv2D(32, (8,8), strides=(4, 4), data_format="channels_first", activation='relu')(l_input)
         l_conv_2 = Conv2D(64,(4,4),data_format="channels_first",activation='relu')(l_conv_1)
         l_conv_3 = Conv2D(64,(3,3),data_format="channels_first",activation='relu')(l_conv_2)
         
@@ -264,14 +264,8 @@ class Agent:
     def replay(self, states, actions, rewards):
         """ Train the DQN with given results of the Episode """
         total_return = self.discount_rewards(rewards)
-
-        # RRRRRREEEEEEEwrite everything so that both brains are one class
         self.value_brain.train(states, total_return)
-        #        s_ = np.vstack([s_])
         baseline_value = self.value_brain.predict(states)
-
-        #advantage = total_return - baseline_value
-        #print("t", total_return,"a",advantage)
         self.policy_brain.train(states, actions, total_return, baseline_value)
 
 #------------------------------------------------------------------
@@ -280,7 +274,7 @@ class Agent:
 class Environment:
 
     def __init__(self):
-        self.game = RL_Algo.init_game("single")
+        self.game = RL_Algo.init_game(GAMEMODE, ALGORITHM)
         self.pre = CNNPreprocessor(STATE_CNT)
 
     def run(self, agent):
@@ -335,6 +329,7 @@ try:
     print("Start REINFORCE Learning process...")
 
     #frame_count = 0
+    
     episode_count = 0
 
     while True:
@@ -358,21 +353,19 @@ try:
             RL_Algo.save_model(
                     agent.value_brain.model,
                     file='reinforce',
-                    name=str(save_counter) + "value", gamemode = GAMEMODE)
+                    name=str(save_counter) + "_value", gamemode = GAMEMODE)
             
             RL_Algo.make_plot(rewards, 'reinforce', 100)
             
-
         
 finally:
         # make plot
-        
 
     # serialize model to JSON
     model_json = agent.value_brain.model.to_json()
     with open("data/reinforce/model_v.json", "w") as json_file:
         json_file.write(model_json)
-
+    #agent.policy_brain.save()
     RL_Algo.make_plot(rewards, 'reinforce', 100, save_array=True)
 
     RL_Algo.save_model(

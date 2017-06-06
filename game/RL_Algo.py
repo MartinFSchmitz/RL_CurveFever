@@ -46,7 +46,7 @@ def get_random_equal_state(sample):
         """
     return (s,a,r,s_)
 #------------------------------------------------------------------  
-def init_game(multi):
+def init_game(multi, algorithm):
     """ init Game Environment """
     if multi == "single":
         game = Learn_SinglePlayer()
@@ -54,7 +54,7 @@ def init_game(multi):
         game = Learn_MultyPlayer()
     if multi == "multi_2":
         game = Learn_MultyPlayer_step_2()
-        game.set_players("lfa_rei")
+        game.set_players(algorithm)
     game.first_init()
     game.init( render = False)
     return game
@@ -113,5 +113,3 @@ def make_plot(x, name, step, save_array = False):
     plt.grid(True)
     plt.savefig("data/" + name + "/" + name +"_plot.png")
     print("made plot...")
-
-

@@ -16,20 +16,25 @@ from SumTree import SumTree
 import pygame
 from Preprocessor import CNNPreprocessor
 import RL_Algo
-from keras.models import Sequential
+from keras.models import *
 from keras.layers import *
 from keras.optimizers import *
 
 """ Double "Deep Q -Network" with PER """
 
 """ Hypertparameters """
-PRINT_RESULTS = False
-SIZE = 40
+
+LOADED_DATA = "data/dqn/trained.h5"
+GAMEMODE = "single" # single, multi_1, multi_2
+ALGORITHM = "dqn"
+
+PRINT_RESULTS = True
+SIZE = 20
 DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
 
-MEMORY_CAPACITY = 300000  # change to 200 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 3000  # change to 200 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -44,7 +49,7 @@ LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 10000  # all x games, save the CNN
+SAVE_XTH_GAME = 500  # all x games, save the CNN
 LEARNING_FRAMES = 50000000  # 50mio
 LEARNING_EPISODES = 10000
 
@@ -61,29 +66,35 @@ def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
 class DQN_Brain():
 
     def __init__(self):
-        
         """ Output: 2 neural Networks
             1. Q-Network
             2. Target Network """
-            
-        self.model = self._createModel(STATE_CNT, ACTION_CNT, 'linear')
-        self.model_ = self._createModel(
-            STATE_CNT, ACTION_CNT, 'linear')  # target network
+        self.prepro = CNNPreprocessor(STATE_CNT)
+        if GAMEMODE == "multi_2":
+                # load json and create model
+            opt = RMSprop(lr=0.00025)
+            json_file = open("data/dqn/model.json", 'r')
+            loaded_model_json = json_file.read()
+            json_file.close()
+            self.model = model_from_json(loaded_model_json)
+            # load weights into new model
+            self.model.load_weights(LOADED_DATA)
+            self.model.compile(loss=self.prepro.hubert_loss, optimizer=opt)
+            self.model_ = copy.copy(self.model)
+        else:
+            self.model = self._createModel(STATE_CNT, ACTION_CNT, 'linear')
+            self.model_ = self._createModel(
+                STATE_CNT, ACTION_CNT, 'linear')  # target network
 
-    def _createModel(self,input, output, act_fun): # Creating a CNN
-        self.state_Cnt = input
+    def _createModel(self, input, output, act_fun): # Creating a CNN
         
         model = Sequential()
         # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
         #relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
-    
-        #model.add(Convolution2D(32, 8, 8, subsample=(4,4), activation='relu', input_shape=(input),dim_ordering='th'))    
-        #model.add(Convolution2D(64, 4, 4, subsample=(2,2), activation='relu'))
-        #model.add(Convolution2D(64, 3, 3, activation='relu',input_shape=(input),dim_ordering='th'))
         
-        model.add(Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(input)))    
-        model.add(Conv2D(64, (3, 3), strides=(2,2),data_format = "channels_first", activation='relu'))
-        model.add(Conv2D(64, (2, 2), data_format = "channels_first", activation='relu'))
+        model.add(Conv2D(32, (6, 6), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(STATE_CNT)))    
+        #model.add(Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')
+        model.add(Conv2D(64, (3, 3), data_format = "channels_first", activation='relu'))
                   
         model.add(Flatten())
         model.add(Dense(output_dim=256, activation='relu'))
@@ -113,7 +124,7 @@ class DQN_Brain():
 
     def predictOne(self, s, target = False):
         """ Predicts Output of the Neural Network for given single input state s """
-        state =s.reshape(1, self.state_Cnt[0], self.state_Cnt[1], self.state_Cnt[2])
+        state =s.reshape(1, STATE_CNT[0], STATE_CNT[1], STATE_CNT[2])
         return self.predict(state, target).flatten()
     
     
@@ -189,7 +200,7 @@ class Agent:
     def act(self, s):
         """ choose action to take
         with epsilon-greedy policy """
-
+        if GAMEMODE == "multi_2": self.epsilon = 0.1
         if random.random() < self.epsilon:
             return random.randint(0, ACTION_CNT - 1)
         else:
@@ -272,9 +283,44 @@ class RandomAgent:
     exp = 0
 
     def __init__(self):
-        pass
+        
+        if GAMEMODE == "multi_2":
+            # returns a compiled model
+            # identical to the previous one
+            # RMSprob is a popular adaptive learning rate method
+            opt = RMSprop(lr=0.00025)
+            #self.dqn=load_model('save_1.h5', custom_objects={'hubert_loss': hubert_loss,'opt': opt })
+            self.prepro = CNNPreprocessor(STATE_CNT)
+    
+            # load json and create model
+            json_file = open(self.get_model(), 'r')
+            loaded_model_json = json_file.read()
+            json_file.close()
+            self.cnn = model_from_json(loaded_model_json)
+            # load weights into new model
+            self.load_cnn()
+            self.cnn.compile(loss=self.prepro.hubert_loss, optimizer=opt)
+            print("Loaded model from disk")
+     
+    def do_action(self, state):
+        s = state.reshape(1, 1, STATE_CNT[1], STATE_CNT[2])
+        action = self.choose_action(s)
+        # action Label is in interval (0,2), but actual action is in interval
+        # (-1,1)
+        return action
+    def get_model(self):
+        return "data/dqn/model.json"
+
+
+    def load_cnn(self):
+        self.cnn.load_weights("data/dqn/trained.h5")
+
+    def choose_action(self, s):
+        values = self.cnn.predict(s).flatten()
+        return np.argmax(values.flatten())  # argmax(Q(s,a))
 
     def act(self, s):
+        if GAMEMODE == "multi_2": return self.do_action(s)
         return random.randint(0, ACTION_CNT - 1)
 
     def observe(self, sample):  # in (s, a, r, s_) format
@@ -291,7 +337,7 @@ class RandomAgent:
 class Environment:
 
     def __init__(self):
-        self.game = RL_Algo.init_game("single")
+        self.game = RL_Algo.init_game(GAMEMODE,ALGORITHM)
         self.pre = CNNPreprocessor(STATE_CNT)
 
     def run(self, agent):
@@ -334,8 +380,6 @@ agent = Agent()
 randomAgent = RandomAgent()
 rewards = []
 
-#rewaaards = 0
-#gaaames = 0
 try:
     print("Initialization with random agent...")
     while randomAgent.exp < MEMORY_CAPACITY:
@@ -359,13 +403,13 @@ try:
         episode_count += 1
         if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
 
-            save_counter = episode_count / SAVE_XTH_GAME
+            save_counter = int(episode_count / SAVE_XTH_GAME)
 
             RL_Algo.make_plot(rewards, 'dqn', 100)
             RL_Algo.save_model(
                 agent.brain.model,
                 file='dqn',
-                name=str(save_counter))
+                name=str(save_counter), gamemode = GAMEMODE)
 
 finally:
     # make plot

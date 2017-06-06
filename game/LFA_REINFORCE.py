@@ -35,6 +35,9 @@ import pickle
 """ HYPER PARAMETERS """
 LOADED_DATA = 'data/lfa_rei/m2_mit_greedy.p'
 GAMEMODE = "multi_2" # single, multi_1, multi_2
+PRINT_RESULTS = True
+ALGORITHM = "lfa_rei"
+
 GAMMA = 0.99
 #LEARNING_FRAMES = 10000000
 LEARNING_EPISODES = 100000
@@ -227,7 +230,7 @@ class Agent:
 class Environment:
 
     def __init__(self):
-        self.game = RL_Algo.init_game(GAMEMODE) #multiplayer?
+        self.game = RL_Algo.init_game(GAMEMODE, ALGORITHM) #multiplayer?
         self.pre = LFAPreprocessor(SIZE)
 
     def run(self, agent):
@@ -267,7 +270,7 @@ class Environment:
         states_array = np.vstack(states)
         agent.replay(states_array, actions, rewards)
 
-        print("Total reward:", all_rewards)
+        if PRINT_RESULTS: print("Total reward:", all_rewards)
         return all_rewards
 #------------------------------------------------------------------
 
@@ -298,11 +301,11 @@ try:
 
             RL_Algo.make_plot(rewards, 'lfa_rei', 100)
             if (GAMEMODE == "multi_2"):
-                pickle.dump(agent.policy_brain.model, open(
-                        'data/lfa_rei/training_pool/agent_' + str(save_counter) +'.p', 'wb'))                
+                file = 'data/lfa_rei/training_pool/agent_' + str(save_counter) +'.p'  
             else:
-                pickle.dump(agent.policy_brain.model, open(
-                        'data/lfa_rei/save.p', 'wb'))
+                file = 'data/lfa_rei/save.p'
+            pickle.dump(agent.policy_brain.model, open(
+                        file, 'wb'))  
 
 finally:
     # make plot
@@ -310,5 +313,5 @@ finally:
     RL_Algo.make_plot(rewards, 'lfa_rei', 100, save_array=True)
     pickle.dump(agent.policy_brain.model, open(
         'data/lfa_rei/save.p', 'wb'))
-    print("mean Reward", sum(rewards)/episode_count)
+    #print("mean Reward", sum(rewards)/episode_count)
     print("-----------Finished Process----------")
