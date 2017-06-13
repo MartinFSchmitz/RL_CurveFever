@@ -18,8 +18,7 @@ from Preprocessor import CNNPreprocessor
 import RL_Algo
 from keras.models import *
 from keras.layers import *
-from keras.optimizers import *
-from spyder.utils.iofuncs import __save_array
+from keras.optimizers import 
 
 """ Double "Deep Q -Network" with PER (DQN) """
 
