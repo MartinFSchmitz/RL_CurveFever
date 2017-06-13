@@ -53,7 +53,7 @@ STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
 
 # Run time in seconds
-RUN_TIME = 60
+RUN_TIME = 60 * 60 * 72
 
 # Amount of parallel agents
 THREADS = 8
