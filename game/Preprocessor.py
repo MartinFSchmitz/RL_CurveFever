@@ -9,7 +9,6 @@ from keras.layers import *
 import numpy as np
 import copy
 import math
-from docutils.nodes import field
 """ Module with several different Preprocessors """
 
 """ Preprocessors for CNNs """
