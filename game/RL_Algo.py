@@ -14,6 +14,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
 
+""" Mudule containing shared methods of several algorithms """
 #------------------------------------------------------------------
 
 def get_random_equal_state(sample):
@@ -21,14 +22,15 @@ def get_random_equal_state(sample):
     """ Gets one random state of the 8 equivalent mirrored and rotated states, to
     the current state """
     s, a, r, s_ = sample
+    # get random number to take random rotaion
     rnd = random.randint(0, 7)
-
+    # mirror
     if (rnd % 2 == 1):
         s = np.fliplr(s)
         s_ = np.fliplr(s_)
         if a == 0: a =2
         elif a == 2: a =0
-        
+    # rotation
     rotate = rnd / 2
     if (rotate < 0):
         # Maps einzeln rotieren
@@ -47,7 +49,7 @@ def get_random_equal_state(sample):
     return (s,a,r,s_)
 #------------------------------------------------------------------  
 def init_game(multi, algorithm):
-    """ init Game Environment """
+    """ init Game Environment for differnent gamemmodes and algorithms """
     if multi == "single":
         game = Learn_SinglePlayer()
     if multi == "multi_1":
@@ -61,16 +63,19 @@ def init_game(multi, algorithm):
 
 def save_model(model, file, name, gamemode = None):
     """saves model structure to json and weights to h5 file """
+    # first save weights as h5 file
+    # in multi_2 training step save in training_pool folder
     if gamemode == "multi_2":
         model.save_weights(
         "data/" + file + "/training_pool/model_" + name + ".h5")
-
+    # normally save in algorithm folder
     else:
         model.save_weights(
         "data/" + file + "/model_" + name + ".h5")
         
     print("Saved model " + name + " to disk")
     if name == 'final':
+        # second save model structure as json file
         # serialize model to JSON
         model_json = model.to_json()
         with open("data/" + file + "/model.json", "w") as json_file:
@@ -89,11 +94,13 @@ def make_plot(x, name, step, save_array = False):
     Saved Plot
     (if save_array): Saved array of values """
     
+    # save reward array
     if ( save_array == True):
         pickle.dump(np.asarray(x), open(
         'data/'+ name +'/'+'reward_array'+'.p', 'wb'))
     step_x = []
     rewards = 0
+    # creating array with average rewards
     for i in range (len(x)): #xrange
         rewards += x[i]
         if i % step == 0 and i != 0:
@@ -104,12 +111,14 @@ def make_plot(x, name, step, save_array = False):
     reward_step_array = np.asarray(step_x)   
     episodes_step = np.arange(step/2, reward_array.size-step/2 , step)    
      
+    # create plot
     plt.plot( episodes,reward_array,linewidth=0.1,color='g')
     plt.plot(episodes_step,reward_step_array,linewidth=1.5,color = 'r')
-
+    # name plot and give labels
     plt.xlabel('Number of episode')
     plt.ylabel('Reward')
     plt.title(name.upper() + ': Rewards per episode')
     plt.grid(True)
+    # save plot in algorithm folder
     plt.savefig("data/" + name + "/" + name +"_plot.png")
     print("made plot...")

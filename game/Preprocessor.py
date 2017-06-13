@@ -9,52 +9,40 @@ from keras.layers import *
 import numpy as np
 import copy
 import math
+from docutils.nodes import field
 """ Module with several different Preprocessors """
 
 """ Preprocessors for CNNs """
 
 class CNNPreprocessor:
 
-    def hubert_loss(self, y_true, y_pred):    # sqrt(1+a^2)-1
-        # Its like MSE in intervall (-1,1) and after this linear Error
-        err = y_pred - y_true
-        return K.mean(K.sqrt(1 + K.square(err)) - 1, axis=-1)
+    def __init__(self, state_cnt, GAMEMODE):
+        # initialize preprocessor for CNNs
 
-    def __init__(self, state_cnt, multi =False):
-        #self.zero_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
-        self.spur_map = np.zeros(shape=(state_cnt[1], state_cnt[2]))
-        self.state_cnt = state_cnt
-        self.begin = True
-        self.multi = multi
+        if GAMEMODE == "single":
+            self.multi = False
+        else:
+            self.multi = True
 
     def cnn_preprocess_state(self, state):
-        # converts given state into fitting state for CNN with only matrices
-        # creates a diffMap with only zeros except a 1 in the player position
-        # doesnt use the rotation
-
-
-#-----------------
-
-        map = state["map"]
-        reward = state["reward"]
-        done = state["done"]
-        if self.begin:
-            self.env_map = copy.copy(map)
-            self.begin = False
-            self.old_map = copy.copy(map)
-            self.spur_map_2 = copy.copy(map)
-        player_map = np.zeros(shape=(self.state_cnt[1], self.state_cnt[2]))
-        #player_map = copy.copy(self.spur_map)
+        # converts given state into fitting state for CNN
+        # The map shows the field with:
+        # 0 for empty field
+        # 1 for every used field or wall
+        # 100 for player position
+        # -100 for opponent position
+        
+        # get player coords
         player_coords = (state["playerPos"][1],
                          state["playerPos"][0])
-        #player_map[player_coords] =  math.radians(state["playerRot"]) # change back to 1?????????????????
-        player_map[player_coords] =  1
-        #player_map[player_coords] =  np.sin(math.radians(state["playerRot"]))
-        c_map = copy.copy(map)
+        # clone map
+        c_map = copy.copy(state["map"])
+        # for Tron
         c_map[player_coords] = 100 # testet: -1,1,2,5,10,100,-100,500,1000,2000,10000,100000000, 100 is best
-
+        # for Curve
+        #c_map[player_coords] = math.radians(state["playerRot"])
         if self.multi:
-            print("multi_player")
+            # add opponent position when multiplayer
             opponent_coords = (
                 int(state["opponentPos"][1]), int(state["opponentPos"][0]))
             c_map[opponent_coords] = -100
@@ -62,32 +50,20 @@ class CNNPreprocessor:
 
         features = np.array([c_map])
 
-        return features, reward, done
-
-    def cnn_preprocess_state_2(self, state, multi_player=False):
-        # converts given state into fitting state for CNN with only matrices
-        # creates a diffMap with only zeros except a 1 in the player position
-        # doesnt use the rotation
-
-        player_map = copy.copy(state["map"])
-        reward = state["reward"]
-        done = state["done"]
-        player_coords = (int(state["playerPos"][0]),
-                         int(state["playerPos"][1]))
-        player_map[player_coords] = 1
-        features = np.array([player_map])
-
-        return features, reward, done
+        return features,state["reward"], state["done"]
 
 """ Preprocessors for LFA """
 class LFAPreprocessor:
 
     def __init__(self, size):
+        """ initialize LFA Preprocessor """
         self.map_size = size
 
     def lfa_preprocess_state_feat(self, state):
-          
+        """ differnent ways to extract features"""  
         features = []
+        
+        # best is by far binary features
         
         #features.append(self.basic_features(state)) #0.0001
         #features.append(self.advanced_features(state)) #0.0005
@@ -100,12 +76,15 @@ class LFAPreprocessor:
         return features, state["reward"], state["done"]
 
     def basic_features(self,state):
+        
+        """ uses basic position features """
         features = []
-
+        # create features
         p = state["playerPos"]
         dx = p[0]/self.map_size
         dy = p[1]/self.map_size
-    
+        
+        # add features to list
         features.append(dx)      
         features.append(dy)
         features.append(1-dx)      
@@ -117,6 +96,7 @@ class LFAPreprocessor:
         return np.asarray(features)
         
     def advanced_features(self,state):
+        """ use advanced position and distance features """
         features = []
         p = state["playerPos"]
         
@@ -124,7 +104,8 @@ class LFAPreprocessor:
         dist_w_r = self.map_size - p[0]-1
         dist_w_l = p[0]-2 #already as pos in
         dist_w_d = self.map_size - p[1]-1
-        dist_w_u = p[1]-2 #already as pos in        
+        dist_w_u = p[1]-2 #already as pos in      
+        #add features too list  
         features.append(dist_w_r)
         features.append(dist_w_l)
         features.append(dist_w_d)
@@ -135,6 +116,7 @@ class LFAPreprocessor:
         dist_l = self.distance('l',state["map"],state["playerPos"],state["done"])
         dist_d = self.distance('d',state["map"],state["playerPos"],state["done"])
         dist_u = self.distance('u',state["map"],state["playerPos"],state["done"])     
+        #add features too list  
         features.append(dist_r)
         features.append(dist_l)
         features.append(dist_d)
@@ -143,24 +125,25 @@ class LFAPreprocessor:
         return features
 
     def binary_features(self,state):
-        
-        #Field on your x side full:
+        """ features in binary representation """
+
         f = np.zeros(8)
+        # handle terminal state
         if (state["done"]):
             #print(state["map"])
             return f
         m = state["map"]
         p = state["playerPos"]
         r = state["playerRot"]
-        #m[(p[1],p[0])] = 9
-        #print(m)
-        if (m[(p[1],p[0]+1)] == 1): #r
+
+        # Is the field on your x side full?:
+        if (m[(p[1],p[0]+1)] == 1): #right
             f[0] = 1        
-        if (m[(p[1],p[0]-1)] == 1): #l
+        if (m[(p[1],p[0]-1)] == 1): #left
             f[1] = 1        
-        if (m[(p[1]+1,p[0])] == 1): #d
+        if (m[(p[1]+1,p[0])] == 1): #down
             f[2] = 1        
-        if (m[(p[1]-1,p[0])] == 1): #u
+        if (m[(p[1]-1,p[0])] == 1): #up
             f[3] = 1
      
         # full Neighbor fields:
@@ -191,7 +174,7 @@ class LFAPreprocessor:
         return f
     
     def count_in_rows (self, map):
-        # counts the number of full fields in every row and column
+        """ counts the number of full fields in every row and column """
         features = []
         full = np.zeros((4,self.map_size-2))
         b1 = True
@@ -212,18 +195,15 @@ class LFAPreprocessor:
             if ((np.sum(map[:,i]) == self.map_size) and b4):
                 b4 = False
                 full[3][i] = 1
-
-
-        #print(full)
         features.append(full.flatten())
-        #f = np.sum(map) # / ((self.map_size)**2.0)
-        #features.append(f)
         return np.asarray(features)
         
         
     def distance(self, dir, curr_map, pos, done):
-        if (done): return 0
+        """ computes distance from player to wall in given direction "dir" """
+        if (done): return 0 # handle terminal state
         # works now perfectly for Tron
+        # go in given direction
         if ( dir == 'r'):            
             x_adder = 1
             y_adder = 0
@@ -239,7 +219,7 @@ class LFAPreprocessor:
         distance = 0
         i = 0
         while True:
-            # look in one direction until you see a wall
+            # look in the direction until you see a wall
             i += 1
             y = pos[1] + y_adder * i
             x = pos[0] + x_adder * i

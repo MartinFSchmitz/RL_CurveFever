@@ -6,25 +6,32 @@ Created on 16.02.2017
 import random
 import numpy
 
-""" Heuristischer Suchalgorithmus: """
+""" Greedy algorithm for Curve Fever """
 
 
 class Greedy(object):
 
+    """ use eigher maxDist or notMinDist policy """
     def init(self, map_size):
-
+        """ init needed parameter for algorithm """
         self.map_size = map_size
         self.look_up = self.init_look_up()
 
     def distance(self, degree, curr_map, pos):
-        # return the distance to the next wall in given angle
+        """
+        Input: degree: in which direction to look,
+               curr_map: current state of the map
+               pos: player position/ position to start searching
+        Output: the distance from the agent to the next wall in given angle """
+        # get value from lookup table
         x, y = self.look_up
         degree = int(degree)
         if degree >= 360:
             degree -= 360
         if degree < 0:
             degree += 360
-        x_adder = x[degree]  # use the angle to define a path to look at
+        # use the angle to define a path to look at
+        x_adder = x[degree]  
         y_adder = y[degree]
         #print("x: " + str(x_adder))
         #print("y: " + str(y_adder))
@@ -39,7 +46,7 @@ class Greedy(object):
             y = int(pos[1] + y_adder * i)
 
             curr_field = (x, y)
-            if (curr_field != last_field):
+            if (curr_field != last_field): # check if you found a wall or used field
                 distance += 1
                 last_field = curr_field
             if ((self.outOfMap(curr_field) or curr_map[curr_field[0], curr_field[1]]) and distance > 2) != 0:
@@ -48,11 +55,12 @@ class Greedy(object):
         return distance
 
     def outOfMap(self, curr_field):
-
+        # check if you are still looking inside of the map
         return curr_field[0] < 0 or curr_field[0] > self.map_size or curr_field[1] < 0 or curr_field[1] > self.map_size
 
     def init_look_up(self):
         # init Look-Up table for distance method
+        # so you dont have to compute this every frame
         x = [None] * 360
         y = [None] * 360
         for i in range(0, 90):
@@ -71,8 +79,10 @@ class Greedy(object):
 
     def maxdist_policy(self, map, pos, rotation):
 
-        # Policy: "go into direction where highest distance to wall is
-        # measured"
+        """ Policy:
+        Every frame measure the distances to a lot of directions (like 10 degree from your current rotation, 20 degree , ...).
+        Then go into the direction where highest distance to wall is
+        measured. """
 
         deg_range = 1  # the degree difference between 2 distance calls
 
@@ -98,8 +108,8 @@ class Greedy(object):
 
     def not_mindist_policy(self, map, pos, rotation):
 
-        # Policy: "go into the opposite direction where the lowest distance to
-        # wall is measured"
+        """ Policy: Every frame measure the distances to a lot of directions (like 10 degree from your current rotation, 20 degree , ...).
+        Then go into the opposite direction where the lowest distance to wall is measured """
 
         deg_range = 1  # the degree difference between 2 distance calls
 

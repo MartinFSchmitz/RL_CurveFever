@@ -33,29 +33,32 @@ import pickle
 
 
 """ HYPER PARAMETERS """
-LOADED_DATA = 'data/lfa_rei/m2_mit_greedy.p'
-GAMEMODE = "multi_2" # single, multi_1, multi_2
-PRINT_RESULTS = True
+# Load already trained models to continue training:
+LOADED_DATA = None  #'data/lfa_rei/m2_mit_greedy.p'
+# Train for singleplayer or multiplayer
+GAMEMODE = "single" # single, multi_1, multi_2
+#print episode results
+PRINT_RESULTS = False
 ALGORITHM = "lfa_rei"
 
 GAMMA = 0.99
 #LEARNING_FRAMES = 10000000
 LEARNING_EPISODES = 100000
 SAVE_XTH_GAME = 100000
-SIZE = 20 + 2
-#STATE_CNT = SIZE**2+4
-DEPTH = 2
 
+# board size
+SIZE = 40 + 2
+# amount of possible actions for the agent
 ACTION_CNT = 4 # left, right, up, down
+# learning rate
 ALPHA = 0.0002 #0.0002
 POLICY_BATCH_TRAIN = False
 
-game = RL_Algo.init_game(GAMEMODE)
+# Hack to not always set STATE_CNT manually when parameter changes
+game = RL_Algo.init_game(GAMEMODE, ALGORITHM)
 pre = LFAPreprocessor(SIZE)
-# Hack to not always set STATE_CNT manually
 STATE_CNT = len(pre.lfa_preprocess_state_feat( game.get_game_state())[0])
 print("STATE_CNT = ",STATE_CNT)
-
 
 #-------------------- BRAINS ---------------------------
 """ Class that contains the Linear Function Aproximator (LFA) for the Policy 
@@ -65,9 +68,8 @@ class Policy_Brain():
 
     def __init__(self):
 
-        """ separate model for each action in the environment's action space. """
-        
-        
+        #separate model for each action in the environment's action space.
+        # use previous trained model from loaded data if given
         if (LOADED_DATA == None):
             self.model = []
             for _ in range(ACTION_CNT):
@@ -181,10 +183,11 @@ having a Policy-Brain a Value-Brain and tries to learn """
 class Agent:
 
     def __init__(self):
-        K.manual_variable_initialization(True)
+        """ initialize policy model and value model"""
+        #K.manual_variable_initialization(True)
         self.policy_brain = Policy_Brain()
         self.value_brain = Value_Brain()
-        K.manual_variable_initialization(False)
+        #K.manual_variable_initialization(False)
 
     def act(self, state):
         """ choose action to take
@@ -198,12 +201,13 @@ class Agent:
         action_prob = action_probs[action]
         return action_prob, action
 
-    def discount_rewards(self, rewards):  # so far seems to not use gamma :(
+    def discount_rewards(self, rewards):
         """ take 1D float array of rewards and compute discounted reward """
         r = np.vstack(rewards)
         discounted_r = np.zeros_like(r, dtype=float)
         running_add = 0.0
         r = r.flatten()
+        # reverse list to compute reward with gamma^t
         for t in reversed(range(0, r.size)):
 
             running_add = running_add * GAMMA + r[t]
@@ -212,11 +216,13 @@ class Agent:
 
     def replay(self, states, actions, rewards):
         """ Train the LFA with given results of the Episode """
+        # get discounted reward and baseline value
         total_return = self.discount_rewards(rewards)
         baseline_value = self.value_brain.predict(states)
 
+        # update both: value and policy model
         self.value_brain.train(states, total_return - baseline_value)
-        #use either train or small train method
+        # use either train or small train method
         if POLICY_BATCH_TRAIN:
             self.policy_brain.train(states,actions,total_return,baseline_value)
         else:
@@ -230,6 +236,7 @@ class Agent:
 class Environment:
 
     def __init__(self):
+        """ initialize game envitonment and preprocessor for LFA """
         self.game = RL_Algo.init_game(GAMEMODE, ALGORITHM) #multiplayer?
         self.pre = LFAPreprocessor(SIZE)
 
@@ -247,22 +254,21 @@ class Environment:
         for t in itertools.count():
 
             # Take a step
+            # choose action
             action_prob, action = agent.act(state)
             self.game.player_1.action = action
+            # get next state tuple
             next_state, reward, done = self.pre.lfa_preprocess_state_feat(
                 self.game.AI_learn_step())
-            # if done: # terminal state
-            #    next_state = None
 
-            # Keep track of the transition
-            #state = state.reshape(1 ,STATE_CNT[0] , STATE_CNT[1], STATE_CNT[2])
-
+            # store experience in lists
             states.append(state)
-            # grad that encourages the action that was tak
+            # grad that encourages the action that was taken to be taken again
             actions.append(action)
             rewards.append(reward)
 
             all_rewards += reward
+            # handle terminal state
             if done:
                 break
             state = next_state
@@ -275,8 +281,8 @@ class Environment:
 #------------------------------------------------------------------
 
 """ Run Everything, and save models afterwards """
+# init Environment and Agent
 env = Environment()
-# init Agents
 agent = Agent()
 
 rewards = []
@@ -284,7 +290,7 @@ try:
     print("Starting learning")
     #frame_count = 0
     episode_count = 0
-
+    # repeat for enough episodes:
     while True:
         #if frame_count >= LEARNING_FRAMES:
         if episode_count >= LEARNING_EPISODES:
@@ -303,15 +309,20 @@ try:
             if (GAMEMODE == "multi_2"):
                 file = 'data/lfa_rei/training_pool/agent_' + str(save_counter) +'.p'  
             else:
-                file = 'data/lfa_rei/save.p'
-            pickle.dump(agent.policy_brain.model, open(
+                file = 'data/lfa_rei/policy.p'
+                pickle.dump(agent.policy_brain.model, open(
+                        file, 'wb'))  
+                file = 'data/lfa_rei/value.p'
+                pickle.dump(agent.value_brain.model, open(
                         file, 'wb'))  
 
 finally:
     # make plot
-    
+    # save useful statistics and the trained models
     RL_Algo.make_plot(rewards, 'lfa_rei', 100, save_array=True)
     pickle.dump(agent.policy_brain.model, open(
-        'data/lfa_rei/save.p', 'wb'))
+        'data/lfa_rei/policy_final.p', 'wb'))
+    pickle.dump(agent.value_brain.model, open(
+        'data/lfa_rei/value_final.p', 'wb'))
     #print("mean Reward", sum(rewards)/episode_count)
     print("-----------Finished Process----------")

@@ -21,6 +21,7 @@ import Greedy
 from Preprocessor import *
 
 """ Player Class for CurveFever """
+""" Module that stores the Curve player parent class and several extended player class for different algorithms etc. """
 class CurvePlayer(object):
 
     def __init__(self, mapSize, color, screenScale, control=None):
@@ -121,10 +122,12 @@ class CurvePlayer(object):
         """ initialize agents in different ways """
         pass
 
-
+""" Different types of players, for human player and several algorithm players """
 class HumanPlayer(CurvePlayer):
-
+    """ Human Player class,
+    deciding action based on key input """
     def init_algorithm(self):
+        """ different control modes: WASD and Arrows possible as keys to move the player"""
         if self.control == "control_1":
             self.actions = {
                 "left": pygame.K_LEFT,
@@ -138,6 +141,7 @@ class HumanPlayer(CurvePlayer):
             }
 
     def handle_input(self, event):
+        """ deciding action based on key input """
         if event.type == pygame.KEYDOWN and event.key == self.actions["right"]:
             self.action = 2
         if event.type == pygame.KEYUP and event.key == self.actions["right"] and self.action == 2:
@@ -149,7 +153,8 @@ class HumanPlayer(CurvePlayer):
 
 
 class GreedyPlayer(CurvePlayer):
-
+    """ Not RL Greedy Player 
+    following its greedy policy"""
     def init_algorithm(self):
         self.agent = Greedy.Greedy()
         self.agent.init(self.mapSize[0])
@@ -167,6 +172,19 @@ class GreedyPlayer(CurvePlayer):
                 map, (self.x, self.y), self.rotation)
         self.action = action
 
+""" From here Algorithm Player start:
+    those are used to let a already trained algorithm play
+    
+    They are based on following concept:
+    init_algorithm:
+    load trained model from file
+    
+    do action:
+    choose action with using their trained Function approximator
+    (CNN or LFA)
+ """
+
+""" LFA based Player Classes """
 
 class QLFAPlayer(CurvePlayer):
 

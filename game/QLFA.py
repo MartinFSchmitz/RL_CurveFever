@@ -15,34 +15,46 @@ from CurveFever import Learn_SinglePlayer
 import RL_Algo
 from Preprocessor import LFAPreprocessor
 
-""" klassisches Q-Learning mit Linearer Funktionsannaeherung """
+""" Q-Learning with linear function approximation """
+
+# used https://github.com/dennybritz/ as reference
 
 # HYPER-PARAMETERS
-GAMEMODE = "single"
+
+# Load already trained models to continue training:
 LOADED_DATA = None #'data/lfa/save.p' # note: change Epsilon, when you load data
+# Train for singleplayer or multiplayer
+GAMEMODE = "single"
+#print episode results
 PRINT_RESULTS = False
+ALGORITHM = "lfa"
 
-STATE_CNT = 4
-ACTION_CNT = 4  # left, right, straight
+STATE_CNT = 0 # will be changed later
+# amount of possible actions for the agent
+ACTION_CNT = 4
 
-NUM_EPISODES = 100000
-SAVE_XTH_GAME = 3000
+SIZE = 40
+NUM_EPISODES = 50000
+SAVE_XTH_GAME = 5000
 
 GAMMA = 0.99
+# parameters for decreasing epsilon
 EPSILON = 0.1,
 EPSILON_DECAY = 1.0
 MAX_EPSILON = 1
 MIN_EPSILON = 0.1
-ALPHA = 0.008
-
 # at this step epsilon will be 0.1  (1 000 000 in original paper)
-EXPLORATION_STOP = 10000
+EXPLORATION_STOP = 25000
 LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
-#------------------------------------------------------------------
+# learning parameter
+ALPHA = 0.008
 
-game = RL_Algo.init_game(GAMEMODE)
-pre = LFAPreprocessor(STATE_CNT)
+
+#------------------------------------------------------------------
+# initialize game environment and preprocessor
+game = RL_Algo.init_game(GAMEMODE, ALGORITHM)
+pre = LFAPreprocessor(SIZE)
 game.init(render=False)
 # Hack to not always set STATE_CNT manually
 STATE_CNT = len(pre.lfa_preprocess_state_feat( game.get_game_state())[0])
@@ -54,10 +66,11 @@ state, _,_ = pre.lfa_preprocess_state_feat(game.AI_learn_step())
 
 class Estimator():
     """
-    Value Function approximator.
+    Value Function approximator. Class to store and modify linear Q-Function model
     """
 
     def __init__(self, init_state):
+        """ initialize LFA model """
         # Creating one model for every action in action space
         if (LOADED_DATA == None):
             self.models = []
@@ -65,19 +78,21 @@ class Estimator():
                 model = np.zeros(STATE_CNT)
                 self.models.append(model)
         else:
+            # use previously trained model when given
             with open(LOADED_DATA, 'rb') as pickle_file:
                 self.models = pickle.load(pickle_file)
             print(self.models)
 
     def predict(self, s, a=None):
+        
         """
         Makes value function predictions.
 
-        Args:
+        Input:
             s: state to make a prediction for
             a: (Optional) action to make a prediction for
 
-        Returns
+        Output
             If an action a is given this returns a single number as the prediction.
             If no action is given this returns a vector or predictions for all actions
             in the environment where pred[i] is the prediction for action i.
@@ -93,10 +108,7 @@ class Estimator():
         Updates the estimator parameters for a given state and action towards
         the target y.
         """
-        # print(self.models)
         self.models[a] = self.models[a] + ALPHA * y * s
-        # print(self.models[a])
-
 
 #------------------------------------------------------------------
 
@@ -184,6 +196,7 @@ def q_learning(game, estimator):
             # Update the function approximator using our target
 
             estimator.update(state, action, td_error)
+            # save models and statistics after certain amount of episodes
             if done:
                 print("done episode: ", episode_count, "time:", t)
                 rewards.append(t)
@@ -204,7 +217,7 @@ def q_learning(game, estimator):
 
 #------------------------------------------------------------------
 
-
-game = RL_Algo.init_game(GAMEMODE)
+# initialize game and value function
+game = RL_Algo.init_game(GAMEMODE,ALGORITHM)
 estimator = Estimator(state)
 q_learning(game, estimator)

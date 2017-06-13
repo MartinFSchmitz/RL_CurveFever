@@ -19,90 +19,108 @@ import RL_Algo
 from keras.models import *
 from keras.layers import *
 from keras.optimizers import *
+from spyder.utils.iofuncs import __save_array
 
-""" Double "Deep Q -Network" with PER """
+""" Double "Deep Q -Network" with PER (DQN) """
 
 """ Hypertparameters """
+# Load already trained model to continue training:
+LOADED_DATA = None #"data/dqn/trained.h5"
 
-LOADED_DATA = "data/dqn/trained.h5"
+# Train for singleplayer or multiplayer
 GAMEMODE = "single" # single, multi_1, multi_2
+
 ALGORITHM = "dqn"
 
-PRINT_RESULTS = True
-SIZE = 20
+#print episode results
+PRINT_RESULTS = False
+
+#board size
+SIZE = 40
+
+#depth of input-map
 DEPTH = 1
+
+# size of parameters of state representation
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
+
+# amount of possible actions for the agent
 ACTION_CNT = 4  # left, right, straight
 
-MEMORY_CAPACITY = 3000  # change to 200 000 (1 000 000 in original paper)
+# capacity of memory to store experiences
+MEMORY_CAPACITY = 30000 
+# change to 200 000 (1 000 000 in original paper)
 
+# size of mini batches for experience replay
 BATCH_SIZE = 32
 
 GAMMA = 0.99
 
 MAX_EPSILON = 1
 MIN_EPSILON = 0.1
-
 # at this step epsilon will be 0.1  (1 000 000 in original paper)
-EXPLORATION_STOP = 500000
+EXPLORATION_STOP = 75000
 LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
+# frequencay of updating target network
 UPDATE_TARGET_FREQUENCY = 10000
 
-SAVE_XTH_GAME = 500  # all x games, save the CNN
+SAVE_XTH_GAME = 1000  # all x games, save the CNN
 LEARNING_FRAMES = 50000000  # 50mio
-LEARNING_EPISODES = 10000
+LEARNING_EPISODES = 50000
 
+LEARNING_RATE = 0.0004 #0.0004
+#0.00025
+print(LEARNING_RATE)
 FRAMESKIPPING = 1
 
-def hubert_loss(y_true, y_pred):    # sqrt(1+a^2)-1
-    err = y_pred - y_true           #Its like MSE in intervall (-1,1) and after this linear Error
-    #self.test = False
+def huber_loss(y_true, y_pred):
+    """ Loss-Function that computes: sqrt(1+a^2)-1 
+    Its like MSE in intervall (-1,1)
+    and outside of this interval like linear Error """
+    err = y_pred - y_true           
     return K.mean( K.sqrt(1+K.square(err))-1, axis=-1 )
 
 #-------------------- BRAIN ---------------------------
 
-""" Class that contains the Neural Network and the functions to use and modify it """
+""" Class that contains the Convolutional Neural Network and the functions to use and modify it
+This CNN  decides the actions for the agent to take and will be trained during the algorithm"""
 class DQN_Brain():
 
     def __init__(self):
-        """ Output: 2 neural Networks
+        """ Output: 2 identical neural Networks:
             1. Q-Network
             2. Target Network """
-        self.prepro = CNNPreprocessor(STATE_CNT)
-        if GAMEMODE == "multi_2":
-                # load json and create model
-            opt = RMSprop(lr=0.00025)
-            json_file = open("data/dqn/model.json", 'r')
-            loaded_model_json = json_file.read()
-            json_file.close()
-            self.model = model_from_json(loaded_model_json)
-            # load weights into new model
-            self.model.load_weights(LOADED_DATA)
-            self.model.compile(loss=self.prepro.hubert_loss, optimizer=opt)
-            self.model_ = copy.copy(self.model)
-        else:
-            self.model = self._createModel(STATE_CNT, ACTION_CNT, 'linear')
-            self.model_ = self._createModel(
-                STATE_CNT, ACTION_CNT, 'linear')  # target network
+        self.prepro = CNNPreprocessor(STATE_CNT, GAMEMODE)
+        #Q-Network:
+        self.model = self._createModel(STATE_CNT, ACTION_CNT, 'linear')
+        # use previously trained CNN if given
+        if LOADED_DATA != None: self.model.load_weights(LOADED_DATA)
+        # Target-Network
+        self.model_ = self._createModel(
+            STATE_CNT, ACTION_CNT, 'linear')  # target network
 
     def _createModel(self, input, output, act_fun): # Creating a CNN
         
-        model = Sequential()
-        # creates layer with 32 kernels with 8x8 kernel size, subsample = pooling layer
-        #relu = rectified linear unit: f(x) = max(0,x), input will be 2 x Mapsize
+        """ create a CNN here 
+        input = input dimension
+        output = output dimension
+        act_fun = activation function for the output layer"""
         
-        model.add(Conv2D(32, (6, 6), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(STATE_CNT)))    
-        #model.add(Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')
-        model.add(Conv2D(64, (3, 3), data_format = "channels_first", activation='relu'))
-                  
+        model = Sequential()
+        
+        # creates layers for cnn
+        # CNN Layer: (amount of filters, ( Kernel Dimensions) , pooling layer size, (not importatnt param) , activation functions, given input shape for layer  
+        model.add(Conv2D(16, (4, 4), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(STATE_CNT)))    
+        model.add(Conv2D(32, (2, 2), strides=(2,2),data_format = "channels_first", activation='relu'))
+        model.add(Conv2D(32, (2, 2), data_format = "channels_first", activation='relu'))
         model.add(Flatten())
-        model.add(Dense(output_dim=256, activation='relu'))
-    
-        model.add(Dense(output_dim=output, activation=act_fun))
-    
-        opt = RMSprop(lr=0.00025) #RMSprob is a popular adaptive learning rate method 
-        model.compile(loss='mse', optimizer=opt)
+        model.add(Dense(activation='relu', units=256))
+        model.add(Dense( activation=act_fun, units = output))
+        #RMSprob is a popular adaptive learning rate method
+        opt = RMSprop(lr=0.00025)
+        # compile cnn with given layers, rmsprop learning method and hubert loss function 
+        model.compile(loss=huber_loss, optimizer=opt)
         return model
     
     def train(self, x, y, epoch=1, verbose=0):
@@ -117,7 +135,6 @@ class DQN_Brain():
         """ Predicts Output of the Neural Network for given batch of input states s 
         Uses either the normal or the target network"""
         if target:
-
             return self.model_.predict(s)
         else:
             return self.model.predict(s)
@@ -148,7 +165,7 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
         return (error + self.e) ** self.a
 
     def add(self, error, sample):
-        """ adds new Sample to memory
+        """ Adds new Sample to memory
         Input:
             error: TD-Error and priority of the sample
             sample: (s,a,r,s') Tuple """
@@ -156,7 +173,6 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
         #if sample[3] is not None: sample = RL_Algo.get_random_equal_state(sample)
         p = self._getPriority(error)
         self.tree.add(p, sample)
-        #[self.tree.add(p, sam) for sam in samples]
 
     def sample(self, n):
 
@@ -185,7 +201,7 @@ class Memory:   # stored as ( s, a, r, s_ ) in SumTree
         #-------------------- AGENT ---------------------------
         
 """ The Agent doing simulations in the environment,
- having a Brain a Memory and tries to learn """
+ having  a Memory trying to train its Brain """
 
 class Agent:
     
@@ -193,7 +209,7 @@ class Agent:
     epsilon = MAX_EPSILON
 
     def __init__(self):
-
+        """ initialize Agent """
         self.brain = DQN_Brain()
         #self.memory = Memory(MEMORY_CAPACITY)
 
@@ -212,6 +228,7 @@ class Agent:
         x, y, errors = self._getTargets([(0, sample)])
         self.memory.add(errors[0], sample)
 
+        # update Target model every x Episodes
         if self.steps % UPDATE_TARGET_FREQUENCY == 0:
             self.brain.updateTargetModel()
 
@@ -288,7 +305,7 @@ class RandomAgent:
             # returns a compiled model
             # identical to the previous one
             # RMSprob is a popular adaptive learning rate method
-            opt = RMSprop(lr=0.00025)
+            opt = RMSprop(lr=LEARNING_RATE)
             #self.dqn=load_model('save_1.h5', custom_objects={'hubert_loss': hubert_loss,'opt': opt })
             self.prepro = CNNPreprocessor(STATE_CNT)
     
@@ -338,7 +355,7 @@ class Environment:
 
     def __init__(self):
         self.game = RL_Algo.init_game(GAMEMODE,ALGORITHM)
-        self.pre = CNNPreprocessor(STATE_CNT)
+        self.pre = CNNPreprocessor(STATE_CNT, GAMEMODE)
 
     def run(self, agent):
         """ run one episode of the game, store the states and replay them every
@@ -350,19 +367,20 @@ class Environment:
         n = 0
         while True:
             # one step of game emulation
-            if n%FRAMESKIPPING == 0:
-                action = agent.act(state)  # agent decides an action
-                self.game.player_1.action = action
+            #if n%FRAMESKIPPING == 0:
+            action = agent.act(state)  # agent decides an action
+            self.game.player_1.action = action # use action
             next_state, reward, done = self.pre.cnn_preprocess_state(
-                    self.game.AI_learn_step())
+            self.game.AI_learn_step())
             if done:  # terminal state
                 #reward = 0
                 next_state = None
             # agent adds the new sample
-            if n%FRAMESKIPPING == 0:
-                agent.observe((state, action, reward, next_state))
-                #[agent.replay() for _ in xrange (8)] #we make 8 steps because we have 8 new states
-                agent.replay()
+            #if n%FRAMESKIPPING == 0:
+            # save observes step in memory
+            agent.observe((state, action, reward, next_state))
+            # use experience to make a parameter update
+            agent.replay()
             state = next_state
             R += reward
             n += 1
@@ -374,13 +392,17 @@ class Environment:
 #-------------------- MAIN ----------------------------
 
 """ Run Everything, and save models afterwards
-First get a full Memory with the Random Agent then use the normal Agent to to Q-Learning """
+First get a full Memory with the Random Agent then use the normal Agent to to Q-Learning with experience replay"""
+
+# init everything
 env = Environment()
 agent = Agent()
 randomAgent = RandomAgent()
 rewards = []
 
+
 try:
+    # Use Random Agent to fill memory
     print("Initialization with random agent...")
     while randomAgent.exp < MEMORY_CAPACITY:
         reward = env.run(randomAgent)
@@ -391,7 +413,7 @@ try:
     print("Starting learning")
     #frame_count = 0
     episode_count = 0
-
+    # Use DQN Agent to train its CNN
     while True:
         if episode_count >= LEARNING_EPISODES:
             break
@@ -401,11 +423,11 @@ try:
         rewards.append(episode_reward)
 
         episode_count += 1
-        if episode_count % SAVE_XTH_GAME == 0:  # all x games, save the CNN
+        if episode_count % SAVE_XTH_GAME == 0:  # all x games, save data
 
             save_counter = int(episode_count / SAVE_XTH_GAME)
 
-            RL_Algo.make_plot(rewards, 'dqn', 100)
+            RL_Algo.make_plot(rewards, 'dqn', 100, save_array = True)
             RL_Algo.save_model(
                 agent.brain.model,
                 file='dqn',
@@ -413,6 +435,6 @@ try:
 
 finally:
     # make plot
-    RL_Algo.make_plot(rewards, 'dqn', 100)
+    RL_Algo.make_plot(rewards, 'dqn', 100, save_array = True)
     RL_Algo.save_model(agent.brain.model, file='dqn', name='final')
     print("-----------Finished Process----------")

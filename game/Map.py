@@ -8,6 +8,15 @@ import math
 import numpy as np
  
 class Map(object):
+    
+    """ Map class storing the current state of the map as a matrix,
+    every field is a 0 or 1
+    0: empty field
+    1: used field or wall
+    size of the map is the board size +2,
+    because the map is surrounded by a 1 field thick wall on every side
+    """
+    
     def __init__(self,screenSize):  
         # initializes game Environment
         self.size = (screenSize[0]+2,screenSize[1]+2)

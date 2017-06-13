@@ -22,12 +22,17 @@ import pickle
 
 """ Hyperparameters """
 
-SIZE = 20
-#STATE_CNT = (2 + (SIZE+2)**2)  # 52x52 = 2704  + 2 wegen pos
-STATE_CNT = 4
-ACTION_CNT = 4  # left, right, straight
+GAMEMODE = "single"
+ALGORITHM = "lfa"
+PRINT_RESULTS = True
 
-MEMORY_CAPACITY = 300000  # change to 500 000 (1 000 000 in original paper)
+# board size
+SIZE = 40
+STATE_CNT = 0 # will be set later
+# amount of possible actions for the agent
+ACTION_CNT = 4  # left, right, straight
+# capacity of memory to store experiences
+MEMORY_CAPACITY = 20000  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -37,18 +42,18 @@ MAX_EPSILON = 1
 MIN_EPSILON = 0.1
 
 # at this step epsilon will be 0.1  (1 000 000 in original paper)
-EXPLORATION_STOP = 500000
+EXPLORATION_STOP = 75000
 LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
-UPDATE_TARGET_FREQUENCY = 1 #10000
+UPDATE_TARGET_FREQUENCY = 3000 #10000
 
 SAVE_XTH_GAME = 1000  # all x games, save the CNN
 LEARNING_FRAMES = 1000000
-LEARNING_EPISODES = 30000
+LEARNING_EPISODES = 50000
 
 ALPHA = 0.005  #0.005 # dont change
 
-game = RL_Algo.init_game()
+game = RL_Algo.init_game(GAMEMODE, ALGORITHM)
 pre = LFAPreprocessor(SIZE)
 # Hack to not always set STATE_CNT manually
 STATE_CNT = len(pre.lfa_preprocess_state_feat( game.get_game_state())[0])
@@ -297,7 +302,7 @@ class RandomAgent:
 class Environment:
 
     def __init__(self):
-        self.game = RL_Algo.init_game()
+        self.game = RL_Algo.init_game(GAMEMODE,ALGORITHM)
         self.pre = LFAPreprocessor(SIZE+2)
         
     def run(self, agent):
@@ -323,7 +328,7 @@ class Environment:
             R += reward
             if done:  # terminal state
                 break
-        print("Total reward:", R)
+        if PRINT_RESULTS: print("Total reward:", R)
         return R
 #-------------------- MAIN ----------------------------
 
@@ -342,7 +347,7 @@ try:
 
     agent.memory = randomAgent.memory
 
-    randomAgent = None
+    # randomAgent = None
 
     print("-------Starting learning-------")
     #frame_count = 0

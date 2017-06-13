@@ -28,22 +28,36 @@ from Preprocessor import CNNPreprocessor
 
 import RL_Algo
 
-#-- constants
+""" Asynchronous Advantage Actor Critic Algorithm (A3C) """
 
-LOADED_DATA = 'data/a3c/p.h5'
+""" Hyperparameters """
+
+# Load already trained model to continue training:
+LOADED_DATA = None #'data/a3c/p.h5'
+# Train for singleplayer or multiplayer
 GAMEMODE = "single" # single, multi_1, multi_2
-PRINT_RESULTS = True
+#print episode results
+PRINT_RESULTS = False
 ALGORITHM = "a3c"
 
-SIZE = 20
+#board size
+SIZE = 40
+
+#depth of input-map
 DEPTH = 1
+
+# size of parameters of state representation
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 
-#STATE_CNT = 3
-ACTION_CNT = 4
+# amount of possible actions for the agent
+ACTION_CNT = 4  # left, right, straight
 
-RUN_TIME = 10  # changed to 30
+# Run time in seconds
+RUN_TIME = 60
+
+# Amount of parallel agents
 THREADS = 8
+# Amount of optimizers to get data from agents
 OPTIMIZERS = 4
 THREAD_DELAY = 0.001
 
@@ -53,11 +67,12 @@ N_STEP_RETURN = 8
 GAMMA_N = GAMMA ** N_STEP_RETURN
 
 EPS_START = 0.4
-EPS_STOP = .15
-EPS_STEPS = 75000
+EPS_STOP = 0.0
+EPS_STEPS = 75000 # to change formerly 75000
 
+# size of mini batches
 MIN_BATCH = 32
-LEARNING_RATE = 3e-3  # eig 5e-4
+LEARNING_RATE = 5e-3  # standart: 5e-4 #3e-3 
 
 LOSS_V = .5            # v loss coefficient
 LOSS_ENTROPY = .01     # entropy coefficient
@@ -70,47 +85,48 @@ class Brain:
     lock_queue = threading.Lock()
 
     def __init__(self):
+        """ initialize tensorflow session, build the CNN and a tensorflow graph. """
         self.session = tf.Session()
         K.set_session(self.session)
         K.manual_variable_initialization(True)    
+        # build CNN
         self.model = self._build_model()
+        # build graph to manually modify the cnn
         self.graph = self._build_graph(self.model)
         self.session.run(tf.global_variables_initializer())
         self.default_graph = tf.get_default_graph()
-        
+        # use previously trained CNN if given
         if LOADED_DATA != None: self.model.load_weights(LOADED_DATA)
         
         self.default_graph.finalize()    # avoid modifications
         self.rewards = []  # store rewards for graph
 
     def _build_model(self):
-        """ build the keras CNN model vor the policy brain """
-        #l_input = Input( batch_shape=(None, STATE_CNT) )
-        #l_dense = Dense(16, activation='relu')(l_input)
-        #l_input = Input(batch_shape = (None,STATE_CNT_S) )
+        """ build the keras CNN model vor the brain """
+        # creates layers for cnn
+        # CNN Layer: (amount of filters, ( Kernel Dimensions) , pooling layer size, (not importatnt param) , activation functions, given input shape for layer )
         l_input = Input(
             batch_shape=(
                 None,
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        l_conv_1 = Conv2D(32, (8, 8), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
-        #l_conv_2 = Conv2D(64, (4, 4), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1)
-        l_conv_3 = Conv2D(64, (3, 3), data_format = "channels_first", activation='relu')(l_conv_1)
-        #model.add()
+        l_conv_1 = Conv2D(16, (4, 4), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
+        l_conv_2 = Conv2D(32, (2, 2), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1)
+        l_conv_3 = Conv2D(32, (2, 2), data_format = "channels_first", activation='relu')(l_conv_2)
 
-        # print(l_input)
         l_conv_flat = Flatten()(l_conv_3)
         l_dense = Dense(units=16, activation='relu')(l_conv_flat)
-
+        # make output layer with softmax function
         out_actions = Dense(
             units=ACTION_CNT,
             activation='softmax')(
             tf.convert_to_tensor(l_dense))
         out_value = Dense(units=1, activation='linear')(l_dense)
-
+        # finally create model
         model = Model(inputs=[l_input], outputs=[out_actions, out_value])
-        model._make_predict_function()    # have to initialize before threading
+        # initialize model before threading
+        model._make_predict_function()    
 
         return model
 
@@ -124,7 +140,6 @@ class Brain:
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        #s_t = tf.placeholder(tf.float32, shape=(None,STATE_CNT_S))
         a_t = tf.placeholder(tf.float32, shape=(None, ACTION_CNT))
         # not immediate, but discounted n step reward
         r_t = tf.placeholder(tf.float32, shape=(None, 1))
@@ -135,8 +150,7 @@ class Brain:
 
         log_prob = tf.log(
             tf.reduce_sum(
-                p *
-                a_t,
+                p *a_t,
                 axis=1,
                 keep_dims=True) +
             1e-10)
@@ -174,13 +188,13 @@ class Brain:
         s_ = np.vstack([s_])
 
         s_mask = np.vstack(s_mask)
-
+        # notify if there are too many samples in the queue
         if len(s) > 5 * MIN_BATCH:
             print("Optimizer alert! Minimizing batch of %d" % len(s))
 
         v = self.predict_v(s_)
         r = r + GAMMA_N * v * s_mask    # set v to 0 where s_ is terminal state
-
+        # train model with feeding the experience to the session
         s_t, a_t, r_t, minimize = self.graph
         self.session.run(minimize, feed_dict={s_t: s, a_t: a, r_t: r})
 
@@ -190,7 +204,7 @@ class Brain:
             self.train_queue[0].append(s)
             self.train_queue[1].append(a)
             self.train_queue[2].append(r)
-
+            # if s is a terminal state, there is no s_ state
             if s_ is None:
                 self.train_queue[3].append(NONE_STATE)
                 self.train_queue[4].append(0.)
@@ -199,7 +213,7 @@ class Brain:
                 self.train_queue[4].append(1.)
 
     def predict(self, s):
-        """ Predicts Output of the DQN for given batch of input states s
+        """ Predicts Output of the CNN for given batch of input states s
         Output: distribution over probabilitys to take actions 
                 and State value """
         with self.default_graph.as_default():
@@ -207,11 +221,13 @@ class Brain:
             return p, v
 
     def predict_p(self, s):
+        """ predict only action probabilites """
         with self.default_graph.as_default():
             p, v = self.model.predict(s)
             return p
 
     def predict_v(self, s):
+        """ predict only state values """
         with self.default_graph.as_default():
             p, v = self.model.predict(s)
             return v
@@ -225,15 +241,18 @@ having a Policy-Brain a Value-Brain and tries to learn """
 
 class Agent:
     def __init__(self, eps_start, eps_end, eps_steps):
+        """ Initialize Agent with a memory and epsilon """
+        # the epsilon will decrease over time
         self.eps_start = eps_start
         self.eps_end = eps_end
         self.eps_steps = eps_steps
 
         self.memory = []    # used for n_step return
+        # reward R
         self.R = 0.
 
     def getEpsilon(self):
-        """ get current wpsilon for epsilon greedy policy """
+        """ get current epsilon for epsilon greedy policy """
         if(frames >= self.eps_steps):
             return self.eps_end
         else:
@@ -246,7 +265,7 @@ class Agent:
         eps = self.getEpsilon()
         global frames
         frames = frames + 1
-
+        # choose random action or action from CNN
         if random.random() < eps:
             return random.randint(0, ACTION_CNT - 1)
 
@@ -272,9 +291,9 @@ class Agent:
         a_cats[a] = 1
 
         self.memory.append((s, a_cats, r, s_))
-
+        # compute reward
         self.R = (self.R + r * GAMMA_N) / GAMMA
-
+        # for terminal state:
         if s_ is None:
             while len(self.memory) > 0:
                 n = len(self.memory)
@@ -285,7 +304,7 @@ class Agent:
                 self.memory.pop(0)
 
             self.R = 0
-
+        # for non terminal state:
         if len(self.memory) >= N_STEP_RETURN:
             s, a, r, s_ = get_sample(self.memory, N_STEP_RETURN)
             brain.train_push(s, a, r, s_)
@@ -308,28 +327,32 @@ class Environment(threading.Thread):
             eps_start=EPS_START,
             eps_end=EPS_STOP,
             eps_steps=EPS_STEPS):
+        
+        # init environment with threads, game, preprocessor and agent
         threading.Thread.__init__(self)
 
         self.game = RL_Algo.init_game(GAMEMODE,ALGORITHM)
-        self.pre = CNNPreprocessor(STATE_CNT)
+        self.pre = CNNPreprocessor(STATE_CNT, GAMEMODE)
         self.agent = Agent(eps_start, eps_end, eps_steps)
 
     def runEpisode(self):
-
+        # compute one episode
         self.game.init(render=False)
         s, _, _ = self.pre.cnn_preprocess_state(self.game.get_game_state())
         R = 0
 
-        while True:
+        while True: # one step in episode
             time.sleep(THREAD_DELAY)  # yield
-            a = self.agent.act(s)
+            #agent chooses action
+            a = self.agent.act(s) 
             self.game.player_1.action = a
+            # get state representation
             s_, r, done = self.pre.cnn_preprocess_state(
                 self.game.AI_learn_step())
 
             if done:  # terminal state
                 s_ = None
-
+            # agent adds the new sample
             self.agent.train(s, a, r, s_)
 
             s = s_
@@ -341,26 +364,32 @@ class Environment(threading.Thread):
         if PRINT_RESULTS: print("Total R:", R)
 
     def run(self):
+        """ agent runs a new episode as long as there is no stop signal """
         while not self.stop_signal:
             self.runEpisode()
 
     def stop(self):
+        """ after calling this, no new episode will be played by agents"""
         self.stop_signal = True
 
 #------------------------------------------------------------------
 
 
 class Optimizer(threading.Thread):
+    """ Class for taking experience from the agents out of the global queue to perform parameter updates """
     stop_signal = False
 
     def __init__(self):
+        # initialize threads
         threading.Thread.__init__(self)
 
     def run(self):
+        # run optimizers
         while not self.stop_signal:
             brain.optimize()
 
     def stop(self):
+        # stop running optimizers
         self.stop_signal = True
 
 
@@ -371,9 +400,11 @@ NONE_STATE = np.zeros(STATE_CNT)
 
 brain = Brain()    # brain is global in A3C
 
+# create several environments and optimizers 
 envs = [Environment() for i in range(THREADS)]
 opts = [Optimizer() for i in range(OPTIMIZERS)]
 
+# managing threads
 for o in opts:
     o.start()
 
@@ -393,6 +424,7 @@ for o in opts:
     o.join()
 
 print("Training finished")
+# save CNN model and useful statistics
 RL_Algo.make_plot(brain.rewards, ALGORITHM, 100, save_array=True)
 RL_Algo.save_model(brain.model, file=ALGORITHM, name='final')
 # env_test.run()
