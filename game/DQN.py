@@ -48,7 +48,7 @@ STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
 
 # capacity of memory to store experiences
-MEMORY_CAPACITY = 30000 
+MEMORY_CAPACITY = 200000 
 # change to 200 000 (1 000 000 in original paper)
 
 # size of mini batches for experience replay
