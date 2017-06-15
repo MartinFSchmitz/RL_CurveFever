@@ -100052,3 +100052,229 @@ W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn'
 W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
 W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
 W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE3 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+Using TensorFlow backend.
+REINFORCE.py:223: UserWarning: The `nb_epoch` argument in `fit` has been renamed `epochs`.
+  verbose=verbose)
+Start REINFORCE Learning process...
+Traceback (most recent call last):
+  File "REINFORCE.py", line 358, in <module>
+    name=str(save_counter), gamemode = GAMEMODE)
+  File "/home/ubuntu/RL_CurveFever/game/RL_Algo.py", line 74, in save_model
+    "data/" + file + "/model_" + name + ".h5")
+  File "/home/ubuntu/miniconda3/lib/python3.6/site-packages/keras/engine/topology.py", line 2459, in save_weights
+    f = h5py.File(filepath, 'w')
+  File "/home/ubuntu/miniconda3/lib/python3.6/site-packages/h5py/_hl/files.py", line 271, in __init__
+    fid = make_fid(name, mode, userblock_size, fapl, swmr=swmr)
+  File "/home/ubuntu/miniconda3/lib/python3.6/site-packages/h5py/_hl/files.py", line 107, in make_fid
+    fid = h5f.create(name, h5f.ACC_TRUNC, fapl=fapl, fcpl=fcpl)
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper (/home/ilan/minonda/conda-bld/h5py_1490028290543/work/h5py/_objects.c:2846)
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper (/home/ilan/minonda/conda-bld/h5py_1490028290543/work/h5py/_objects.c:2804)
+  File "h5py/h5f.pyx", line 98, in h5py.h5f.create (/home/ilan/minonda/conda-bld/h5py_1490028290543/work/h5py/h5f.c:2290)
+OSError: Unable to create file (Unable to open file: name = 'data/reinforce/model_1.h5', errno = 2, error message = 'no such file or directory', flags = 13, o_flags = 242)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "REINFORCE.py", line 371, in <module>
+    RL_Algo.make_plot(rewards, 'reinforce', 100, save_array=True)
+  File "/home/ubuntu/RL_CurveFever/game/RL_Algo.py", line 100, in make_plot
+    'data/'+ name +'/'+'reward_array'+'.p', 'wb'))
+FileNotFoundError: [Errno 2] No such file or directory: 'data/reinforce/reward_array.p'
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE3 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+Using TensorFlow backend.
+REINFORCE.py:223: UserWarning: The `nb_epoch` argument in `fit` has been renamed `epochs`.
+  verbose=verbose)
+Start REINFORCE Learning process...
+Traceback (most recent call last):
+  File "REINFORCE.py", line 358, in <module>
+    name=str(save_counter), gamemode = GAMEMODE)
+  File "/home/ubuntu/RL_CurveFever/game/RL_Algo.py", line 74, in save_model
+    "data/" + file + "/model_" + name + ".h5")
+  File "/home/ubuntu/miniconda3/lib/python3.6/site-packages/keras/engine/topology.py", line 2459, in save_weights
+    f = h5py.File(filepath, 'w')
+  File "/home/ubuntu/miniconda3/lib/python3.6/site-packages/h5py/_hl/files.py", line 271, in __init__
+    fid = make_fid(name, mode, userblock_size, fapl, swmr=swmr)
+  File "/home/ubuntu/miniconda3/lib/python3.6/site-packages/h5py/_hl/files.py", line 107, in make_fid
+    fid = h5f.create(name, h5f.ACC_TRUNC, fapl=fapl, fcpl=fcpl)
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper (/home/ilan/minonda/conda-bld/h5py_1490028290543/work/h5py/_objects.c:2846)
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper (/home/ilan/minonda/conda-bld/h5py_1490028290543/work/h5py/_objects.c:2804)
+  File "h5py/h5f.pyx", line 98, in h5py.h5f.create (/home/ilan/minonda/conda-bld/h5py_1490028290543/work/h5py/h5f.c:2290)
+OSError: Unable to create file (Unable to open file: name = 'data/reinforce/model_1.h5', errno = 2, error message = 'no such file or directory', flags = 13, o_flags = 242)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "REINFORCE.py", line 371, in <module>
+    RL_Algo.make_plot(rewards, 'reinforce', 100, save_array=True)
+  File "/home/ubuntu/RL_CurveFever/game/RL_Algo.py", line 100, in make_plot
+    'data/'+ name +'/'+'reward_array'+'.p', 'wb'))
+FileNotFoundError: [Errno 2] No such file or directory: 'data/reinforce/reward_array.p'
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE3 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+Using TensorFlow backend.
+REINFORCE.py:223: UserWarning: The `nb_epoch` argument in `fit` has been renamed `epochs`.
+  verbose=verbose)
+Start REINFORCE Learning process...
+Saved model 1 to disk
+Saved model 1_value to disk
+made plot...
+Saved model 2 to disk
+Saved model 2_value to disk
+made plot...
+Saved model 3 to disk
+Saved model 3_value to disk
+made plot...
+Saved model 4 to disk
+Saved model 4_value to disk
+made plot...
+Saved model 5 to disk
+Saved model 5_value to disk
+made plot...
+Saved model 6 to disk
+Saved model 6_value to disk
+made plot...
+Saved model 7 to disk
+Saved model 7_value to disk
+made plot...
+Saved model 8 to disk
+Saved model 8_value to disk
+made plot...
+Saved model 9 to disk
+Saved model 9_value to disk
+made plot...
+Saved model 10 to disk
+Saved model 10_value to disk
+made plot...
+Saved model 11 to disk
+Saved model 11_value to disk
+made plot...
+Saved model 12 to disk
+Saved model 12_value to disk
+made plot...
+Saved model 13 to disk
+Saved model 13_value to disk
+made plot...
+Saved model 14 to disk
+Saved model 14_value to disk
+made plot...
+Saved model 15 to disk
+Saved model 15_value to disk
+made plot...
+Saved model 16 to disk
+Saved model 16_value to disk
+made plot...
+Saved model 17 to disk
+Saved model 17_value to disk
+made plot...
+Saved model 18 to disk
+Saved model 18_value to disk
+made plot...
+Saved model 19 to disk
+Saved model 19_value to disk
+made plot...
+Saved model 20 to disk
+Saved model 20_value to disk
+made plot...
+Saved model 21 to disk
+Saved model 21_value to disk
+made plot...
+Saved model 22 to disk
+Saved model 22_value to disk
+made plot...
+Saved model 23 to disk
+Saved model 23_value to disk
+made plot...
+Saved model 24 to disk
+Saved model 24_value to disk
+made plot...
+Saved model 25 to disk
+Saved model 25_value to disk
+made plot...
+Saved model 26 to disk
+Saved model 26_value to disk
+made plot...
+Saved model 27 to disk
+Saved model 27_value to disk
+made plot...
+Saved model 28 to disk
+Saved model 28_value to disk
+made plot...
+Saved model 29 to disk
+Saved model 29_value to disk
+made plot...
+Saved model 30 to disk
+Saved model 30_value to disk
+made plot...
+Saved model 31 to disk
+Saved model 31_value to disk
+made plot...
+Saved model 32 to disk
+Saved model 32_value to disk
+made plot...
+Saved model 33 to disk
+Saved model 33_value to disk
+made plot...
+Saved model 34 to disk
+Saved model 34_value to disk
+made plot...
+Saved model 35 to disk
+Saved model 35_value to disk
+made plot...
+Saved model 36 to disk
+Saved model 36_value to disk
+made plot...
+Saved model 37 to disk
+Saved model 37_value to disk
+made plot...
+Saved model 38 to disk
+Saved model 38_value to disk
+made plot...
+Saved model 39 to disk
+Saved model 39_value to disk
+made plot...
+Saved model 40 to disk
+Saved model 40_value to disk
+made plot...
+Saved model 41 to disk
+Saved model 41_value to disk
+made plot...
+Saved model 42 to disk
+Saved model 42_value to disk
+made plot...
+Saved model 43 to disk
+Saved model 43_value to disk
+made plot...
+Saved model 44 to disk
+Saved model 44_value to disk
+made plot...
+Saved model 45 to disk
+Saved model 45_value to disk
+made plot...
+Saved model 46 to disk
+Saved model 46_value to disk
+made plot...
+Saved model 47 to disk
+Saved model 47_value to disk
+made plot...
+Saved model 48 to disk
+Saved model 48_value to disk
+made plot...
+Saved model 49 to disk
+Saved model 49_value to disk
+made plot...
+Saved model 50 to disk
+Saved model 50_value to disk
+made plot...
+made plot...
+Saved model final_v to disk
+Saved model final to disk
+-----------Finished Process----------
