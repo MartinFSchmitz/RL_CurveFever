@@ -64,10 +64,10 @@ class LFAPreprocessor:
         
         # best is by far binary features
         
-        #features.append(self.basic_features(state)) #0.0001
-        #features.append(self.advanced_features(state)) #0.0005
+        features.append(self.basic_features(state)) #0.0001
+        features.append(self.advanced_features(state)) #0.0005
         #features.append(self.count_in_rows(state["map"])) #0.001
-        features.append(self.binary_features(state)) #0.001
+        #features.append(self.binary_features(state)) #0.001
         features = np.array(features)[0].flatten()
         #print(state["map"])
         
@@ -100,15 +100,15 @@ class LFAPreprocessor:
         p = state["playerPos"]
         
         # distances to walls
-        dist_w_r = self.map_size - p[0]-1
-        dist_w_l = p[0]-2 #already as pos in
-        dist_w_d = self.map_size - p[1]-1
-        dist_w_u = p[1]-2 #already as pos in      
+        #dist_w_r = self.map_size - p[0]-1
+        #dist_w_l = p[0]-2 #already as pos in
+        #dist_w_d = self.map_size - p[1]-1
+        #dist_w_u = p[1]-2 #already as pos in      
         #add features too list  
-        features.append(dist_w_r)
-        features.append(dist_w_l)
-        features.append(dist_w_d)
-        features.append(dist_w_u)
+        #features.append(dist_w_r)
+        #features.append(dist_w_l)
+        #features.append(dist_w_d)
+        #features.append(dist_w_u)
 
         # distances in directions
         dist_r = self.distance('r',state["map"],state["playerPos"],state["done"])

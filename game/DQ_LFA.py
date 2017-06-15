@@ -30,9 +30,9 @@ PRINT_RESULTS = True
 SIZE = 40
 STATE_CNT = 0 # will be set later
 # amount of possible actions for the agent
-ACTION_CNT = 4  # left, right, straight
+ACTION_CNT = 3  # left, right, straight
 # capacity of memory to store experiences
-MEMORY_CAPACITY = 20000  # change to 500 000 (1 000 000 in original paper)
+MEMORY_CAPACITY = 200000  # change to 500 000 (1 000 000 in original paper)
 
 BATCH_SIZE = 32
 
@@ -82,8 +82,8 @@ class Brain:
     def train(self, x, y, a,errors, epoch=1, verbose=0):
         """ Trains the LFA with given batch of (x,y,a,error) tuples
         Perform one parameter update for whole Batch """
-        state = [[], [], [],[]] # to change when actionCnt changes!
-        target = [[], [], [],[]]
+        state = [[], [], []] # to change when actionCnt changes!
+        target = [[], [], []]
         batch_size = a.size # could also use any other given variable .size
         for i in range(batch_size):
             action = int(a[i])

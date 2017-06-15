@@ -59,7 +59,7 @@ DEPTH = 1
 # size of parameters of state representation
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 # amount of possible actions for the agent
-ACTION_CNT = 3  # left, right, straight
+ACTION_CNT = 4  # left, right, straight
 #-------------------- BRAINS ---------------------------
 """ Class that contains the CNN for the Policy (containing a Keras CNN model combined with a tensorflow graph)
 and the functions to use and modify it """
@@ -360,7 +360,7 @@ try:
             RL_Algo.save_model(
                     agent.value_brain.model,
                     file='reinforce',
-                    name=str(save_counter) + "_value", gamemode = "single")
+                    name=str(save_counter) + "_value", gamemode = GAMEMODE)
             
             RL_Algo.make_plot(rewards, 'reinforce', 100)
             

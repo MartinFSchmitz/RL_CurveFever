@@ -31,7 +31,7 @@ ALGORITHM = "lfa"
 
 STATE_CNT = 0 # will be changed later
 # amount of possible actions for the agent
-ACTION_CNT = 4
+ACTION_CNT = 3
 
 SIZE = 40
 NUM_EPISODES = 50000
