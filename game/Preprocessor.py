@@ -37,9 +37,9 @@ class CNNPreprocessor:
         # clone map
         c_map = copy.copy(state["map"])
         # for Tron
-        c_map[player_coords] = 100 # testet: -1,1,2,5,10,100,-100,500,1000,2000,10000,100000000, 100 is best
+        #c_map[player_coords] = 100 # testet: -1,1,2,5,10,100,-100,500,1000,2000,10000,100000000, 100 is best
         # for Curve
-        #c_map[player_coords] = math.radians(state["playerRot"])
+        c_map[player_coords] = math.radians(state["playerRot"])
         if self.multi:
             # add opponent position when multiplayer
             opponent_coords = (
@@ -64,10 +64,10 @@ class LFAPreprocessor:
         
         # best is by far binary features
         
-        features.append(self.basic_features(state)) #0.0001
-        features.append(self.advanced_features(state)) #0.0005
+        #features.append(self.basic_features(state)) #0.0001
+        #features.append(self.advanced_features(state)) #0.0005
         #features.append(self.count_in_rows(state["map"])) #0.001
-        #features.append(self.binary_features(state)) #0.001
+        features.append(self.binary_features(state)) #0.001
         features = np.array(features)[0].flatten()
         #print(state["map"])
         

@@ -31,11 +31,12 @@ ALGORITHM = "lfa"
 
 STATE_CNT = 0 # will be changed later
 # amount of possible actions for the agent
-ACTION_CNT = 3
+ACTION_CNT = 4
 
-SIZE = 40
+SIZE = 30
 NUM_EPISODES = 50000
-SAVE_XTH_GAME = 5000
+
+SAVE_XTH_GAME = 3000
 
 GAMMA = 0.99
 # parameters for decreasing epsilon

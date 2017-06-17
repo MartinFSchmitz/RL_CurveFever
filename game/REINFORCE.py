@@ -43,23 +43,23 @@ LOADED_DATA_VALUE = None # 'data/reinforce/v.h5'
 # Train for singleplayer or multiplayer
 GAMEMODE = "single" # single, multi_1, multi_2
 #print episode results
-PRINT_RESULTS = False
+PRINT_RESULTS = True
 ALGORITHM = "reinforce"
 
-LEARNING_RATE = 5e-4 #5e-4 #1.5e4
+LEARNING_RATE = 2e-4 #5e-4 #1.5e4
 GAMMA = 0.99
 LEARNING_FRAMES = 10000000
 LEARNING_EPISODES = 50000
 SAVE_XTH_GAME = 1000
 
 #board size
-SIZE = 40
+SIZE = 30
 #depth of input-map
 DEPTH = 1
 # size of parameters of state representation
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 # amount of possible actions for the agent
-ACTION_CNT = 4  # left, right, straight
+ACTION_CNT = 3  # left, right, straight
 #-------------------- BRAINS ---------------------------
 """ Class that contains the CNN for the Policy (containing a Keras CNN model combined with a tensorflow graph)
 and the functions to use and modify it """

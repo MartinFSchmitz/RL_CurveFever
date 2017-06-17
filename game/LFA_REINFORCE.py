@@ -38,16 +38,16 @@ LOADED_DATA = None  #'data/lfa_rei/m2_mit_greedy.p'
 # Train for singleplayer or multiplayer
 GAMEMODE = "single" # single, multi_1, multi_2
 #print episode results
-PRINT_RESULTS = False
+PRINT_RESULTS = True
 ALGORITHM = "lfa_rei"
 
 GAMMA = 0.99
 #LEARNING_FRAMES = 10000000
-LEARNING_EPISODES = 100000
-SAVE_XTH_GAME = 100000
+LEARNING_EPISODES = 50000
+SAVE_XTH_GAME = 5000
 
 # board size
-SIZE = 40 + 2
+SIZE = 30 + 2
 # amount of possible actions for the agent
 ACTION_CNT = 4 # left, right, up, down
 # learning rate
