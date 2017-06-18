@@ -44,7 +44,7 @@ DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 
 # amount of possible actions for the agent
-ACTION_CNT = 3  # left, right, straight
+ACTION_CNT = 4  # left, right, straight
 
 # capacity of memory to store experiences
 MEMORY_CAPACITY = 200000 
@@ -68,7 +68,7 @@ SAVE_XTH_GAME = 1000  # all x games, save the CNN
 LEARNING_FRAMES = 50000000  # 50mio
 LEARNING_EPISODES = 50000
 
-LEARNING_RATE = 0.0004 #0.0004
+LEARNING_RATE = 0.00025 #0.0004
 #0.00025
 print(LEARNING_RATE)
 FRAMESKIPPING = 1

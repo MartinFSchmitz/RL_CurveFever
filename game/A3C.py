@@ -41,7 +41,7 @@ PRINT_RESULTS = True
 ALGORITHM = "a3c"
 
 #board size
-SIZE = 40
+SIZE = 30
 
 #depth of input-map
 DEPTH = 1
@@ -50,15 +50,15 @@ DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 
 # amount of possible actions for the agent
-ACTION_CNT = 3  # left, right, straight
+ACTION_CNT = 4  # left, right, straight
 
 # Run time in seconds
-RUN_TIME = 60 * 60 * 48
+RUN_TIME = 60 * 60 * 8
 
 # Amount of parallel agents
 THREADS = 8
 # Amount of optimizers to get data from agents
-OPTIMIZERS = 4
+OPTIMIZERS = 2
 THREAD_DELAY = 0.001
 
 GAMMA = 0.99
@@ -72,7 +72,7 @@ EPS_STEPS = 75000 # to change formerly 75000
 
 # size of mini batches
 MIN_BATCH = 32
-LEARNING_RATE = 5e-3  # standart: 5e-4 #3e-3 
+LEARNING_RATE = 5e-4  # standart: 5e-4 #3e-3 
 
 LOSS_V = .5            # v loss coefficient
 LOSS_ENTROPY = .01     # entropy coefficient

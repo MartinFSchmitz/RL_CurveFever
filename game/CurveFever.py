@@ -12,8 +12,8 @@ import os
 import random
 
 # Decide if you want to play Tron or Zatacka
-#GAME_TYPE = 'Tron'
-GAME_TYPE = 'Curve'
+GAME_TYPE = 'Tron'
+#GAME_TYPE = 'Curve'
 
 # gamemode can be either "single" or "multi"
 GAMEMODE = "single"
