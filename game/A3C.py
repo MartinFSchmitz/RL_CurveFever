@@ -58,7 +58,7 @@ RUN_TIME = 60 * 60 * 8
 # Amount of parallel agents
 THREADS = 8
 # Amount of optimizers to get data from agents
-OPTIMIZERS = 2
+OPTIMIZERS = 3
 THREAD_DELAY = 0.001
 
 GAMMA = 0.99
