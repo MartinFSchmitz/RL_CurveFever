@@ -59,7 +59,8 @@ DEPTH = 1
 # size of parameters of state representation
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 # amount of possible actions for the agent
-ACTION_CNT = 4  # left, right, straight
+ACTION_CNT = 4
+# left, right, straight
 #-------------------- BRAINS ---------------------------
 """ Class that contains the CNN for the Policy (containing a Keras CNN model combined with a tensorflow graph)
 and the functions to use and modify it """
@@ -92,9 +93,9 @@ class Policy_Brain():
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        l_conv_1 = Conv2D(16, (4, 4), strides=(4,4),data_format = "channels_first", activation='relu')(l_input) #8,8 4,4 original
-        l_conv_2 = Conv2D(32, (2, 2), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1) #8,8 4,4 original
-        l_conv_3 = Conv2D(32, (2, 2), data_format = "channels_first", activation='relu')(l_conv_2)
+        l_conv_1 = Conv2D(8, (4, 4), strides=(3,3),data_format = "channels_first", activation='relu')(l_input) #8,8 4,4 original
+        l_conv_2 = Conv2D(16, (2, 2), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1) #8,8 4,4 original
+        l_conv_3 = Conv2D(16, (2, 2), data_format = "channels_first", activation='relu')(l_conv_2)
 
         l_conv_flat = Flatten()(l_conv_3)
         l_dense = Dense(units=16, activation='relu')(l_conv_flat)
