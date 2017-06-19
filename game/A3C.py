@@ -50,7 +50,7 @@ DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 
 # amount of possible actions for the agent
-ACTION_CNT = 4  # left, right, straight
+ACTION_CNT = 3  # left, right, straight
 
 # Run time in seconds
 RUN_TIME = 60 * 60 * 36
