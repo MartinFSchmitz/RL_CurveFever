@@ -34,9 +34,10 @@ import pickle
 
 """ HYPER PARAMETERS """
 # Load already trained models to continue training:
-LOADED_DATA = None  #'data/lfa_rei/m2_mit_greedy.p'
+LOADED_DATA = 'data/lfa_rei/tron_trained_30/policy.p'
+LOADED_DATA_V = 'data/lfa_rei/tron_trained_30/value.p'
 # Train for singleplayer or multiplayer
-GAMEMODE = "single" # single, multi_1, multi_2
+GAMEMODE = "multi_1" # single, multi_1, multi_2
 #print episode results
 PRINT_RESULTS = True
 ALGORITHM = "lfa_rei"
@@ -150,8 +151,12 @@ class Value_Brain():
     
     def __init__(self):
         """separate model for each action in the environment's """
-        self.model = np.zeros(STATE_CNT) + 0.5
 
+        if (LOADED_DATA_V == None):
+            self.model = np.zeros(STATE_CNT) + 0.5
+        else:
+            with open(LOADED_DATA_V, 'rb') as pickle_file:
+                self.model = pickle.load(pickle_file)
     def train(self, states, errors, epoch=1, verbose=0):  # x, y, a,errors,
         """ Trains the LFA with given batch of (state,error) tuples
         Perform one parameter update for whole Batch """

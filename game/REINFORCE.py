@@ -38,10 +38,10 @@ def huber_loss(y_true, y_pred):
 
 """ HYPER PARAMETERS """
 # Load already trained models to continue training:
-LOADED_DATA = None # 'data/reinforce/p.h5'
-LOADED_DATA_VALUE = None # 'data/reinforce/v.h5'
+LOADED_DATA =  'data/reinforce/tron_vs_greedy/model_final.h5'
+LOADED_DATA_VALUE = 'data/reinforce/tron_vs_greedy/model_final_v.h5'
 # Train for singleplayer or multiplayer
-GAMEMODE = "single" # single, multi_1, multi_2
+GAMEMODE = "multi_2" # single, multi_1, multi_2
 #print episode results
 PRINT_RESULTS = True
 ALGORITHM = "reinforce"
@@ -50,7 +50,7 @@ LEARNING_RATE = 2e-4 #5e-4 #1.5e4
 GAMMA = 0.99
 LEARNING_FRAMES = 10000000
 LEARNING_EPISODES = 50000
-SAVE_XTH_GAME = 1000
+SAVE_XTH_GAME = 500
 
 #board size
 SIZE = 30
@@ -93,9 +93,9 @@ class Policy_Brain():
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        l_conv_1 = Conv2D(8, (4, 4), strides=(3,3),data_format = "channels_first", activation='relu')(l_input) #8,8 4,4 original
-        l_conv_2 = Conv2D(16, (2, 2), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1) #8,8 4,4 original
-        l_conv_3 = Conv2D(16, (2, 2), data_format = "channels_first", activation='relu')(l_conv_2)
+        l_conv_1 = Conv2D(16, (6, 6), strides=(4,4),data_format = "channels_first", activation='relu')(l_input) #8,8 4,4 original
+        l_conv_2 = Conv2D(32, (3, 3), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1) #8,8 4,4 original
+        l_conv_3 = Conv2D(32, (2, 2), data_format = "channels_first", activation='relu')(l_conv_2)
 
         l_conv_flat = Flatten()(l_conv_3)
         l_dense = Dense(units=16, activation='relu')(l_conv_flat)
@@ -193,8 +193,8 @@ class Value_Brain():
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        l_conv_1 = Conv2D(16, (4,4), strides=(4, 4), data_format="channels_first", activation='relu')(l_input)
-        l_conv_2 = Conv2D(32,(2,2),data_format="channels_first",activation='relu')(l_conv_1)
+        l_conv_1 = Conv2D(16, (6,6), strides=(4, 4), data_format="channels_first", activation='relu')(l_input)
+        l_conv_2 = Conv2D(32,(3,3),strides=(2, 2),data_format="channels_first",activation='relu')(l_conv_1)
         l_conv_3 = Conv2D(32,(2,2),data_format="channels_first",activation='relu')(l_conv_2)
         
         l_conv_flat = Flatten()(l_conv_3)
@@ -361,7 +361,7 @@ try:
             RL_Algo.save_model(
                     agent.value_brain.model,
                     file='reinforce',
-                    name=str(save_counter) + "_value", gamemode = GAMEMODE)
+                    name=str(save_counter) + "_value", gamemode = "single") #gamemode has to be single always, so value_model doesnt go into the trainings pool
             
             RL_Algo.make_plot(rewards, 'reinforce', 100)
             

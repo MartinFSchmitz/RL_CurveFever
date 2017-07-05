@@ -14,7 +14,7 @@ def make_plot(x, name, step):
     Saved several Plots"""
     
         # Example data
-    labels = ('a)', 'b)', 'c)')
+    labels = ('Q-Learning', 'DQN', 'REINFORCE-LA', 'REINFORCE-CNN', 'A3C' , 'Greedy')
     
     leng = x[0].size
     # ToDO cut all
@@ -49,13 +49,15 @@ def make_plot(x, name, step):
         color='black')  # graph to show x axis
     plt.xlabel('Episode')
     plt.ylabel('Reward')
-    plt.legend(bbox_to_anchor=(0.75, 0.25), loc=2, borderaxespad=0.)
+    # Where to put legend
+    plt.legend(bbox_to_anchor=(0.75, 0.8), loc=2, borderaxespad=0.)
     #plt.title(name.upper() + ': Rewards per Episode')
     plt.title(name + ': Rewards per Episode')
     plt.grid(True)
     plt.savefig("data/plots/" + name + "_plot.png")
     print("...made plot")
     print("------Finished------")
+    plt.show()
 #------------------------------------------------------------------------
 def make_bar_plot(x, name, number):
 
@@ -90,24 +92,34 @@ def make_bar_plot(x, name, number):
     plt.savefig("data/plots/" + name + "bar_plot.png")
     print("...made plot")
     print("------Finished------")
-    #plt.show()
+    plt.show()
 #------------------------------------------------------------------------
 print("-----Plot Maker-----")
 data = []
 
-with open('data/plots/LFA_Prepro/a.p', 'rb') as pickle_file:
+
+with open('data/plots/exp_1/lfa.p', 'rb') as pickle_file:
     rewards_1 = pickle.load(pickle_file)
-with open('data/plots/LFA_Prepro/b.p', 'rb') as pickle_file:
+with open('data/plots/exp_1/dqn.p', 'rb') as pickle_file:
     rewards_2 = pickle.load(pickle_file)
-with open('data/plots/LFA_Prepro/c.p', 'rb') as pickle_file:
+with open('data/plots/exp_1/lfa_rei.p', 'rb') as pickle_file:
     rewards_3 = pickle.load(pickle_file)
-
-
+with open('data/plots/exp_1/rei.p', 'rb') as pickle_file:
+    rewards_4 = pickle.load(pickle_file)
+with open('data/plots/exp_1/a3c.p', 'rb') as pickle_file:
+    rewards_5 = pickle.load(pickle_file)
+    rewards_5 = rewards_5[:50000]
+rewards_6 = np.zeros(50000) + 700
+#rewards_6.tolist()
+print(rewards_6)
 data.append(rewards_1)
 data.append(rewards_2)
 data.append(rewards_3)
+data.append(rewards_4)
+data.append(rewards_5)
+data.append(rewards_6)
 
-make_plot(data, 'LFA-Preprozessoren', 100)
+make_plot(data, 'Experiment 1', 100)
 #make_bar_plot(data, 'LFA-Preprozessoren', 1000)
 
 

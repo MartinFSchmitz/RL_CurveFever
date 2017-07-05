@@ -22,9 +22,9 @@ from Preprocessor import LFAPreprocessor
 # HYPER-PARAMETERS
 
 # Load already trained models to continue training:
-LOADED_DATA = None #'data/lfa/save.p' # note: change Epsilon, when you load data
+LOADED_DATA ='data/lfa/tron_vs_greedy/save.p' # note: change Epsilon, when you load data
 # Train for singleplayer or multiplayer
-GAMEMODE = "single"
+GAMEMODE = "multi_2"
 #print episode results
 PRINT_RESULTS = False
 ALGORITHM = "lfa"
@@ -36,16 +36,16 @@ ACTION_CNT = 4
 SIZE = 30
 NUM_EPISODES = 50000
 
-SAVE_XTH_GAME = 3000
+SAVE_XTH_GAME = 500
 
 GAMMA = 0.99
 # parameters for decreasing epsilon
 EPSILON = 0.1,
 EPSILON_DECAY = 1.0
 MAX_EPSILON = 1
-MIN_EPSILON = 0.1
+MIN_EPSILON = 0.0001
 # at this step epsilon will be 0.1  (1 000 000 in original paper)
-EXPLORATION_STOP = 25000
+EXPLORATION_STOP = 1
 LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
 
 # learning parameter
@@ -82,7 +82,6 @@ class Estimator():
             # use previously trained model when given
             with open(LOADED_DATA, 'rb') as pickle_file:
                 self.models = pickle.load(pickle_file)
-            print(self.models)
 
     def predict(self, s, a=None):
         
@@ -169,7 +168,9 @@ def q_learning(game, estimator):
         # Reset the environment and pick the first action
         game.init(render=False)
         state,_,_ = pre.lfa_preprocess_state_feat(game.AI_learn_step())
+        R = 0 # total reward R
         # One step in the environment
+
         for t in itertools.count():
 
             # Choose an action to take
@@ -180,7 +181,8 @@ def q_learning(game, estimator):
             game.player_1.action = action
             # Take a step
             next_state, reward, done = pre.lfa_preprocess_state_feat(game.AI_learn_step())
-
+            # increase total reward
+            R += reward
             # TD Update
             q_values_next = estimator.predict(next_state)
             # print(q_values_next)
@@ -199,8 +201,8 @@ def q_learning(game, estimator):
             estimator.update(state, action, td_error)
             # save models and statistics after certain amount of episodes
             if done:
-                print("done episode: ", episode_count, "time:", t)
-                rewards.append(t)
+                print("done episode: ", episode_count, "reward:", R)
+                rewards.append(R)
                 
                 if episode_count % SAVE_XTH_GAME == 0:
                     save_counter = int(episode_count / SAVE_XTH_GAME)

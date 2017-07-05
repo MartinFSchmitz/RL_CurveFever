@@ -204,12 +204,12 @@ class QLFAPlayer_Tron(TronPlayer):
     def init_algorithm(self,gamemode = None, path = None):
         self.prepro = LFAPreprocessor(self.mapSize[0])
         if path == None:
-            path = 'data/lfa/save.p'
+            path = 'data/lfa/tron_trained_30/save.p'
         with open(path, 'rb') as pickle_file:
             self.models = pickle.load(pickle_file)
 
     def do_action(self, game_state):
-        state, _, _ = self.prepro.lfa_preprocess_state_2(game_state)
+        state, _, _ = self.prepro.lfa_preprocess_state_feat(game_state)
         #a = np.array([m.predict([state])[0] for m in self.models])
         a = np.array([np.inner(m, state) for m in self.models])
         # print(np.argmax(a))
@@ -221,7 +221,7 @@ class LFA_REI_Player_Tron(TronPlayer):
     def init_algorithm(self,gamemode = None, path = None):
         self.prepro = LFAPreprocessor(self.mapSize[0])
         if path == None:
-            path = 'data/lfa_rei/save.p'
+            path = 'data/lfa_rei/tron_trained_30/policy.p'
         with open(path, 'rb') as pickle_file:
             self.models = pickle.load(pickle_file)
 
@@ -229,9 +229,10 @@ class LFA_REI_Player_Tron(TronPlayer):
         state, _, _ = self.prepro.lfa_preprocess_state_feat(game_state)
         #a = np.array([m.predict([state])[0] for m in self.models])
         a = np.array([np.inner(m, state) for m in self.models])
-        self.action = np.argmax(a)
-
-        #self.action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
+        #self.action = np.argmax(a)
+        e_x = np.exp(a - np.max(a))
+        pred = e_x / e_x.sum()
+        self.action = np.random.choice(np.arange(len(pred)), p=pred)
 
 
 class CNNPlayer_Tron(TronPlayer):
@@ -252,7 +253,7 @@ class CNNPlayer_Tron(TronPlayer):
         self.cnn = model_from_json(loaded_model_json)
         # load weights into new model
         self.load_cnn(path)
-        self.cnn.compile(loss=self.prepro.hubert_loss, optimizer=opt)
+        self.cnn.compile(loss=self.prepro.huber_loss, optimizer=opt)
         #print("Loaded model from disk")
         
     def do_action(self, state):
@@ -266,11 +267,13 @@ class CNNPlayer_Tron(TronPlayer):
 
 class DQNPlayer_Tron(CNNPlayer_Tron):
     def get_model(self):
-        return "data/dqn/model.json"
+        return "data/dqn/tron_trained_30/model.json"
 
-    def load_cnn(self):
-        self.cnn.load_weights("data/dqn/model_final.h5")
-
+    def load_cnn(self, path):
+        if path == None:
+            self.cnn.load_weights("data/dqn/tron_trained_30/model_final.h5")
+        else:
+            self.cnn.load_weights(path)
     def choose_action(self, s):
         values = self.cnn.predict(s).flatten()
         return np.argmax(values.flatten())  # argmax(Q(s,a))
@@ -278,15 +281,18 @@ class DQNPlayer_Tron(CNNPlayer_Tron):
 
 class REINFORCEPlayer_Tron(CNNPlayer_Tron):
     def get_model(self):
-        return "data/reinforce/model.json"
+        return "data/reinforce/tron_trained_30/model.json"
 
     def load_cnn(self, path):
-        self.cnn.load_weights(path)
+        if path == None:
+            self.cnn.load_weights("data/reinforce/tron_trained_30/model_final.h5")
+        else:
+            self.cnn.load_weights(path)
 
     def choose_action(self, s):
         values = self.cnn.predict(s).flatten()
-        return np.random.choice(np.arange(len(values)), p=values)
-        # return np.argmax(values.flatten())  # argmax(Q(s,a)
+        #return np.random.choice(np.arange(len(values)), p=values)
+        return np.argmax(values.flatten())  # argmax(Q(s,a)
 
 
 class A3CPlayer_Tron(CNNPlayer_Tron):

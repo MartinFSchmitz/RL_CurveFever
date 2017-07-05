@@ -33,7 +33,7 @@ import RL_Algo
 """ Hyperparameters """
 
 # Load already trained model to continue training:
-LOADED_DATA = None #'data/a3c/p.h5'
+LOADED_DATA = None # 'data/a3c/trained_tron_30/model_final.h5' #None #
 # Train for singleplayer or multiplayer
 GAMEMODE = "single" # single, multi_1, multi_2
 #print episode results
@@ -50,13 +50,13 @@ DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 
 # amount of possible actions for the agent
-ACTION_CNT = 3  # left, right, straight
+ACTION_CNT = 4  # left, right, straight
 
 # Run time in seconds
-RUN_TIME = 60 * 60 * 36
+RUN_TIME = 60 * 60 * 3
 
 # Amount of parallel agents
-THREADS = 8
+THREADS = 12
 # Amount of optimizers to get data from agents
 OPTIMIZERS = 3
 THREAD_DELAY = 0.001
@@ -66,13 +66,13 @@ GAMMA = 0.99
 N_STEP_RETURN = 8
 GAMMA_N = GAMMA ** N_STEP_RETURN
 
-EPS_START = 0.4
+EPS_START = 0.0
 EPS_STOP = 0.0
-EPS_STEPS = 75000 # to change formerly 75000
+EPS_STEPS = 50000 # to change formerly 75000
 
 # size of mini batches
 MIN_BATCH = 32
-LEARNING_RATE = 5e-4  # standart: 5e-4 #3e-3 
+LEARNING_RATE = 1e-4#8e-5  # standart: 5e-4 #3e-3 
 
 LOSS_V = .5            # v loss coefficient
 LOSS_ENTROPY = .01     # entropy coefficient
@@ -88,7 +88,7 @@ class Brain:
         """ initialize tensorflow session, build the CNN and a tensorflow graph. """
         self.session = tf.Session()
         K.set_session(self.session)
-        K.manual_variable_initialization(True)    
+        #K.manual_variable_initialization(True)    
         # build CNN
         self.model = self._build_model()
         # build graph to manually modify the cnn
@@ -98,7 +98,7 @@ class Brain:
         # use previously trained CNN if given
         if LOADED_DATA != None: self.model.load_weights(LOADED_DATA)
         
-        self.default_graph.finalize()    # avoid modifications
+        #self.default_graph.finalize()    # avoid modifications
         self.rewards = []  # store rewards for graph
 
     def _build_model(self):
@@ -111,8 +111,8 @@ class Brain:
                 STATE_CNT[0],
                 STATE_CNT[1],
                 STATE_CNT[2]))
-        l_conv_1 = Conv2D(16, (4, 4), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
-        l_conv_2 = Conv2D(32, (2, 2), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1)
+        l_conv_1 = Conv2D(16, (6, 6), strides=(4,4),data_format = "channels_first", activation='relu')(l_input)
+        l_conv_2 = Conv2D(32, (3, 3), strides=(2,2),data_format = "channels_first", activation='relu')(l_conv_1)
         l_conv_3 = Conv2D(32, (2, 2), data_format = "channels_first", activation='relu')(l_conv_2)
 
         l_conv_flat = Flatten()(l_conv_3)
@@ -393,7 +393,7 @@ class Optimizer(threading.Thread):
         self.stop_signal = True
 
 
-#-- main
+#----- main
 env_test = Environment(render=True, eps_start=0., eps_end=0.)
 
 NONE_STATE = np.zeros(STATE_CNT)

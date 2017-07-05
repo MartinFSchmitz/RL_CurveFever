@@ -12,8 +12,8 @@ import os
 import random
 
 # Decide if you want to play Tron or Zatacka
-#GAME_TYPE = 'Tron'
-GAME_TYPE = 'Curve'
+GAME_TYPE = 'Tron'
+#GAME_TYPE = 'Curve'
 
 # gamemode can be either "single" or "multi"
 GAMEMODE = "single"
@@ -169,6 +169,9 @@ class Main(object):
         if self.player_1.pos_updated(next_pos) and self.Map.has_collision(
                 next_pos):
             # update winning stats and game is over
+            self.tot_rew += self.score
+            self.game_counter +=1
+            self.average = self.tot_rew/self.game_counter
             self.stats_p2w += 1
             over = True
             self.won = False
@@ -209,13 +212,17 @@ class Main(object):
         self.stats_p1w = 0
         self.stats_p2w = 0
         self.stats_draw = 0
-
+        self.tot_rew = 0
+        self.average = 0
+        self.game_counter = 0
     def init(self, render=True):
         """ run everytime you start a game """
         # initialize all variables
         # bool if player_1 won, lose or game ended in draw
         self.won = False
         # write game score
+        if GAMEMODE == "single" and render == True:
+            print("Episode: " + str(self.game_counter), "Avegare Reward: " + str(self.average))
         if GAMEMODE == "multi" and render == True:
             print( "Player_1 vs. Player_2  " + str(self.stats_p1w) + " : " + str(self.stats_p2w), "draws: " + str(self.stats_draw) )
         # counter to properly name screenshots
@@ -314,12 +321,12 @@ class SinglePlayer (Main):
     """ Gamemode to play as Singleplayer """
     def create_players(self):
         
-        self.player_1 = HumanPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
+        #self.player_1 = HumanPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE,"control_1")
         #self.player_1 = GreedyPlayer_Tron(MAP_SIZE,COLOR_TWO,SCREEN_SCALE)
         #self.player_1 = QLFAPlayer_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
-        #self.player_1 = LFA_REI_Player(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
-        #self.player_1 = DQNPlayer_Tron(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
-        #self.player_1 = REINFORCEPlayer_Tron(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
+        #self.player_1 = LFA_REI_Player_Tron(MAP_SIZE,COLOR_ONE,SCREEN_SCALE)
+        self.player_1 = DQNPlayer_Tron(MAP_SIZE, COLOR_ONE, SCREEN_SCALE, gamemode = GAMEMODE)
+        #self.player_1 = REINFORCEPlayer_Tron(MAP_SIZE, COLOR_ONE, SCREEN_SCALE, gamemode = GAMEMODE)
         #self.player_1 = A3CPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE)
         self.multi = False
 
@@ -363,4 +370,4 @@ if __name__ == '__main__':
     while True:
         self.step()
         pygame.display.update()
-        self.clock.tick(20)
+        self.clock.tick(100000)

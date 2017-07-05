@@ -44,7 +44,7 @@ DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 
 # amount of possible actions for the agent
-ACTION_CNT = 4  # left, right, straight
+ACTION_CNT = 3  # left, right, straight
 
 # capacity of memory to store experiences
 MEMORY_CAPACITY = 200000 
@@ -56,7 +56,7 @@ BATCH_SIZE = 32
 GAMMA = 0.99
 
 MAX_EPSILON = 1
-MIN_EPSILON = 0.1
+MIN_EPSILON = 0.0001
 # at this step epsilon will be 0.1  (1 000 000 in original paper)
 EXPLORATION_STOP = 75000
 LAMBDA = - math.log(0.01) / EXPLORATION_STOP  # speed of decay
@@ -68,7 +68,7 @@ SAVE_XTH_GAME = 1000  # all x games, save the CNN
 LEARNING_FRAMES = 50000000  # 50mio
 LEARNING_EPISODES = 50000
 
-LEARNING_RATE = 2e-4 #0.0004
+LEARNING_RATE = 5e-6 #1e-4
 #0.00025
 print(LEARNING_RATE)
 FRAMESKIPPING = 1
@@ -110,14 +110,14 @@ class DQN_Brain():
         
         # creates layers for cnn
         # CNN Layer: (amount of filters, ( Kernel Dimensions) , pooling layer size, (not importatnt param) , activation functions, given input shape for layer  
-        model.add(Conv2D(16, (4, 4), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(STATE_CNT)))    
-        model.add(Conv2D(32, (2, 2), strides=(2,2),data_format = "channels_first", activation='relu'))
+        model.add(Conv2D(16, (6, 6), strides=(4,4),data_format = "channels_first", activation='relu',input_shape=(STATE_CNT)))    
+        model.add(Conv2D(32, (3, 3), strides=(2,2),data_format = "channels_first", activation='relu'))
         model.add(Conv2D(32, (2, 2), data_format = "channels_first", activation='relu'))
         model.add(Flatten())
         model.add(Dense(activation='relu', units=256))
         model.add(Dense( activation=act_fun, units = output))
         #RMSprob is a popular adaptive learning rate method
-        opt = RMSprop(lr=0.00025)
+        opt = RMSprop(lr=LEARNING_RATE)
         # compile cnn with given layers, rmsprop learning method and hubert loss function 
         model.compile(loss=huber_loss, optimizer=opt)
         return model

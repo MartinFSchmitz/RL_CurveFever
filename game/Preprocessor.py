@@ -15,9 +15,18 @@ import math
 
 class CNNPreprocessor:
 
+    def huber_loss(self, y_true, y_pred):
+        """ Loss-Function that computes: sqrt(1+a^2)-1 
+        Its like MSE in intervall (-1,1)
+        and outside of this interval like linear Error """
+        err = y_pred - y_true           
+        return K.mean( K.sqrt(1+K.square(err))-1, axis=-1 )
+    
+    
     def __init__(self, state_cnt, GAMEMODE):
         # initialize preprocessor for CNNs
-
+        if GAMEMODE == None:
+            print("Error: give Gamemode variable to player")
         if GAMEMODE == "single":
             self.multi = False
         else:
@@ -37,9 +46,9 @@ class CNNPreprocessor:
         # clone map
         c_map = copy.copy(state["map"])
         # for Tron
-        #c_map[player_coords] = 100 # testet: -1,1,2,5,10,100,-100,500,1000,2000,10000,100000000, 100 is best
+        c_map[player_coords] = 100 # testet: -1,1,2,5,10,100,-100,500,1000,2000,10000,100000000, 100 is best
         # for Curve
-        c_map[player_coords] = math.radians(state["playerRot"])
+        #c_map[player_coords] = math.radians(state["playerRot"])
         if self.multi:
             # add opponent position when multiplayer
             opponent_coords = (
