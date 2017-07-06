@@ -24,7 +24,7 @@ from keras.optimizers import *
 
 """ Hypertparameters """
 # Load already trained model to continue training:
-LOADED_DATA = None #"data/dqn/trained.h5"
+LOADED_DATA = None #"data/dqn/tron_trained_30/model_final.h5"
 
 # Train for singleplayer or multiplayer
 GAMEMODE = "single" # single, multi_1, multi_2
@@ -32,7 +32,7 @@ GAMEMODE = "single" # single, multi_1, multi_2
 ALGORITHM = "dqn"
 
 #print episode results
-PRINT_RESULTS = False
+PRINT_RESULTS = True
 
 #board size
 SIZE = 30
@@ -44,7 +44,7 @@ DEPTH = 1
 STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 
 # amount of possible actions for the agent
-ACTION_CNT = 3  # left, right, straight
+ACTION_CNT = 4  # left, right, straight
 
 # capacity of memory to store experiences
 MEMORY_CAPACITY = 200000 

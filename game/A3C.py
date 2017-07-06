@@ -33,9 +33,9 @@ import RL_Algo
 """ Hyperparameters """
 
 # Load already trained model to continue training:
-LOADED_DATA = None # 'data/a3c/trained_tron_30/model_final.h5' #None #
+LOADED_DATA = 'data/a3c/trained_tron_30/model_final.h5' #None #
 # Train for singleplayer or multiplayer
-GAMEMODE = "single" # single, multi_1, multi_2
+GAMEMODE = "multi_1" # single, multi_1, multi_2
 #print episode results
 PRINT_RESULTS = True
 ALGORITHM = "a3c"
@@ -53,12 +53,12 @@ STATE_CNT = (DEPTH, SIZE + 2, SIZE + 2)
 ACTION_CNT = 4  # left, right, straight
 
 # Run time in seconds
-RUN_TIME = 60 * 60 * 3
+RUN_TIME = 60 * 60 * 10
 
 # Amount of parallel agents
-THREADS = 12
+THREADS = 8
 # Amount of optimizers to get data from agents
-OPTIMIZERS = 3
+OPTIMIZERS = 2
 THREAD_DELAY = 0.001
 
 GAMMA = 0.99
