@@ -290,6 +290,7 @@ class Environment:
         # Reset the environment and pick the first action
         self.game.init(render=False)
         state, reward, done = self.pre.cnn_preprocess_state(
+            
             self.game.AI_learn_step())
         all_rewards = 0
 
@@ -315,6 +316,8 @@ class Environment:
 
             all_rewards += reward
             if done:
+                #del self.game.player_1
+                #del self.game.player_2
                 break
             state = next_state
 

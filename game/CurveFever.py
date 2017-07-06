@@ -284,15 +284,21 @@ class Learn_MultyPlayer_step_2 (Main):
         self.name = algorithm
         self.multi = True
         self.path = None
-      
+        self.player_1 = None
+        self.player_2 = None
     def create_players(self):
         """ method to create players in multi_2 training step
-        neeeded to spawn random 2nd polayer out of training pool
+        neeeded to spawn random 2nd player out of training pool
         old versions of the trained FA will be added to this training pool"""
+        if self.player_1 != None:
+            del self.player_1
         self.player_1 = TronPlayer(MAP_SIZE, COLOR_ONE, SCREEN_SCALE, gamemode = "multi_2")
         opponent = random.choice(os.listdir('data/' + self.name + '/training_pool/'))
+        #opponent = "model_final.h5"
         path = 'data/' + self.name + '/training_pool/' + opponent
 
+        if self.player_2 != None:
+            del self.player_2
         if (opponent == 'greedy.txt'):
             self.player_2 = GreedyPlayer_Tron(MAP_SIZE,COLOR_TWO,SCREEN_SCALE,gamemode = "multi_2")
         elif (self.name == "lfa_rei"):
