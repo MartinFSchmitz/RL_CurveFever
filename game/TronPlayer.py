@@ -15,6 +15,7 @@ import pickle
 from keras.optimizers import *
 from keras.models import load_model
 from keras.models import model_from_json
+import keras
 
 
 import Greedy
@@ -299,10 +300,17 @@ class A3CPlayer_Tron(CNNPlayer_Tron):
     def get_model(self):
         return "data/a3c/model.json"
 
-    def load_cnn(self):
-        self.cnn.load_weights("data/a3c/model_final.h5")
+    def load_cnn(self, path): 
 
+        print(path)
+        if path == None:
+            self.cnn.load_weights("data/a3c/tron_trained_30/model_final.h5")
+        else:
+            self.cnn.load_weights(path)
+            
+            
     def choose_action(self, s):
+
         values = self.cnn.predict(s)[0].flatten()
         eps = 0.1
         if random.random() < eps:
